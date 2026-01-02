@@ -10,11 +10,11 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 3,183 | < 300 | 12% |
+| App.tsx lines | 3,625 | 2,614 | < 300 | 28% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 17 | 0-2 | 0% |
-| Context menu lines | ~600 | ~600 | 0 | 0% |
+| Context menu lines | ~600 | 0 (extracted) | 0 | 100% |
 
 ---
 
@@ -92,18 +92,19 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 ---
 
-## Phase 3: Context Menu Extraction (NOT STARTED)
+## Phase 3: Context Menu Extraction (COMPLETE)
 
-### P0 - Critical (~600 lines to extract)
+### P0 - Critical (~600 lines extracted)
 
 | Context Menu | Location | Approach | Lines | Status |
 |--------------|----------|----------|-------|--------|
-| `handleThumbnailContextMenu` | App:2415-2737 | Extract to utility | ~320 | TODO |
-| `handleEditorContextMenu` | App:2337-2413 | Extract to utility | ~75 | TODO |
-| `handleFolderTreeContextMenu` | App:2797-2911 | Extract to utility | ~115 | TODO |
-| `handleMainLibraryContextMenu` | App:2913-2961 | Extract to utility | ~50 | TODO |
+| `handleThumbnailContextMenu` | useContextMenus hook | Hook-based | ~320 | DONE |
+| `handleEditorContextMenu` | useContextMenus hook | Hook-based | ~75 | DONE |
+| `handleFolderTreeContextMenu` | useContextMenus hook | Hook-based | ~115 | DONE |
+| `handleMainLibraryContextMenu` | useContextMenus hook | Hook-based | ~50 | DONE |
 
-**Recommended approach**: Create `src/utils/contextMenus.ts` with pure functions that take cubits and return menu items.
+**Implementation**: Created `src/hooks/useContextMenus.tsx` hook that encapsulates all context menu logic.
+App.tsx uses the hook and passes handlers.
 
 ---
 
@@ -403,8 +404,29 @@ Added new methods to EditorCubit:
 - `src/cubits/NavigationCubit.ts` - Added refreshAllFolderTrees, togglePinFolder methods
 - `src/App.tsx` - Simplified folder tree handlers
 
+### Session 6 Updates
+- **Extracted all context menus to `src/hooks/useContextMenus.tsx`**
+  - Created comprehensive hook that encapsulates all four context menu handlers
+  - Hook receives handler callbacks from App.tsx and uses cubits directly for state
+  - Removed ~569 lines from App.tsx (from 3,183 to 2,614 lines)
+- Made `showCopiedFeedback` public in ClipboardCubit for use by hook
+- Cleaned up unused imports from App.tsx:
+  - Removed all lucide-react icon imports (moved to hook)
+  - Removed `useContextMenu`, `TaggingSubMenu` imports
+  - Removed `Option`, `OPTION_SEPARATOR` imports
+- App.tsx now at 2,614 lines
+- Total reduction: 3,625 -> 2,614 lines (~1,011 lines removed, ~27.9%)
+
+### Files Created (Session 6)
+- `src/hooks/useContextMenus.tsx` - Context menu hook (~700 lines)
+
+### Files Modified (Session 6)
+- `src/cubits/ClipboardCubit.ts` - Made showCopiedFeedback public
+- `src/App.tsx` - Removed context menu handlers, cleaned up imports
+
 ### Next Steps
-1. Move AI generative replace/erase handlers (complex, lower priority)
-2. Create LeftPanelContainer component to encapsulate FolderTree + resize
-3. Continue simplifying remaining handlers
-4. Target: reduce App.tsx from 3182 to < 500 lines
+1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)
+2. Move `handleImageSelect` to EditorCubit (~50 lines)
+3. Create LeftPanelContainer component to encapsulate FolderTree + resize
+4. Continue simplifying remaining handlers
+5. Target: reduce App.tsx from 2,614 to < 500 lines

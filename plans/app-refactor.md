@@ -4,12 +4,12 @@
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| App.tsx lines | 3,183 | < 300 |
+| App.tsx lines | 2,614 | < 300 |
 | Editor.tsx props | 18 | 0-2 |
 | MainLibrary.tsx props | 17 | 0-2 |
 | BottomBar.tsx props | 17 | 0-2 |
 | Cubits created | 12 | - |
-| Progress | ~12% reduced | 90%+ reduced |
+| Progress | ~28% reduced | 90%+ reduced |
 
 ## Problem Statement
 
@@ -297,7 +297,7 @@ Target: **~200-300 lines**
 
 | Priority | Task | Impact | Effort |
 |----------|------|--------|--------|
-| P0 | Phase 2: Context Menu Extraction | -600 lines | Medium |
+| P0 | Phase 2: Context Menu Extraction | -600 lines | DONE |
 | P0 | Phase 3.1: Editor.tsx refactor | -18 props | High |
 | P0 | Phase 3.2: MainLibrary.tsx refactor | -17 props | High |
 | P1 | Phase 1.1-1.4: Core handler migration | -300 lines | Medium |
@@ -318,7 +318,7 @@ Target: **~200-300 lines**
 - [ ] No component receives > 4 props
 - [ ] All domain logic lives in appropriate cubits
 - [ ] Components use `useBloc` to access state
-- [ ] Context menu builders extracted to utility/hook
+- [x] Context menu builders extracted to utility/hook
 - [ ] Inter-cubit communication uses `.get()` pattern
 - [ ] Clean build (no TS errors)
 - [ ] No regressions in functionality

@@ -143,7 +143,7 @@ export class ClipboardCubit extends Cubit<ClipboardState> {
     }
   };
 
-  private showCopiedFeedback = () => {
+  showCopiedFeedback = () => {
     if (this.copyTimer) clearTimeout(this.copyTimer);
     this.patch({ isCopied: true });
     this.copyTimer = setTimeout(() => {

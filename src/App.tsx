@@ -219,7 +219,6 @@ function App() {
     isLoadingFullRes,
     isFullResolution,
     isViewLoading,
-    copiedAdjustments,
     copiedSectionAdjustments,
     activeRightPanel,
     renderedRightPanel,
@@ -254,7 +253,6 @@ function App() {
   const setIsLoadingFullRes = editorCubit.setIsLoadingFullRes;
   const setIsFullResolution = editorCubit.setIsFullResolution;
   const setIsViewLoading = editorCubit.setIsViewLoading;
-  const setCopiedAdjustments = editorCubit.setCopiedAdjustments;
   const setActiveRightPanel = editorCubit.setActiveRightPanel;
   const setRenderedRightPanel = editorCubit.setRenderedRightPanel;
   const setFinalPreviewUrl = editorCubit.setFinalPreviewUrl;
@@ -317,6 +315,7 @@ function App() {
   // Clipboard state from ClipboardCubit - single source of truth
   const {
     copiedFilePaths,
+    copiedAdjustments,
     isCopied,
     isPasted,
   } = clipboardState;
@@ -363,12 +362,6 @@ function App() {
   };
 
   const setCopiedFilePaths = clipboardCubit.setCopiedFilePaths;
-  const setIsCopied = (value: boolean) => {
-    if (value) clipboardCubit.copyAdjustments(adjustments);
-  };
-  const setIsPasted = (_value: boolean) => {
-    // Handled by ClipboardCubit internally
-  };
 
   const setIsGeneratingAi = comfyUICubit.setIsGenerating;
 
@@ -1364,13 +1357,8 @@ function App() {
 
   const handleCopyAdjustments = useCallback(() => {
     const sourceAdjustments = selectedImage ? adjustments : libraryActiveAdjustments;
-    const adjustmentsToCopy: any = {};
-    for (const key of COPYABLE_ADJUSTMENT_KEYS) {
-      if (sourceAdjustments.hasOwnProperty(key)) adjustmentsToCopy[key] = sourceAdjustments[key];
-    }
-    setCopiedAdjustments(adjustmentsToCopy);
-    setIsCopied(true);
-  }, [selectedImage, adjustments, libraryActiveAdjustments]);
+    clipboardCubit.copyAdjustments(sourceAdjustments);
+  }, [selectedImage, adjustments, libraryActiveAdjustments, clipboardCubit]);
 
   const handlePasteAdjustments = useCallback(
     (paths?: Array<string>) => {
@@ -1398,7 +1386,7 @@ function App() {
       }
 
       if (Object.keys(adjustmentsToApply).length === 0) {
-        setIsPasted(true);
+        clipboardCubit.showPastedFeedback();
         return;
       }
 
@@ -1419,9 +1407,9 @@ function App() {
           setError(`Failed to paste adjustments: ${err}`);
         },
       );
-      setIsPasted(true);
+      clipboardCubit.showPastedFeedback();
     },
-    [copiedAdjustments, appSettings, multiSelectedPaths, selectedImage, adjustments, setAdjustments],
+    [copiedAdjustments, appSettings, multiSelectedPaths, selectedImage, adjustments, setAdjustments, clipboardCubit],
   );
 
   const handleRate = useCallback(

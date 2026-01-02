@@ -151,7 +151,7 @@ export class ClipboardCubit extends Cubit<ClipboardState> {
     }, FEEDBACK_TIMEOUT);
   };
 
-  private showPastedFeedback = () => {
+  showPastedFeedback = () => {
     if (this.pasteTimer) clearTimeout(this.pasteTimer);
     this.patch({ isPasted: true });
     this.pasteTimer = setTimeout(() => {

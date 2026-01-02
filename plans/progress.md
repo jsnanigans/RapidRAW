@@ -10,7 +10,7 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,598 | < 300 | 28% |
+| App.tsx lines | 3,625 | 2,586 | < 300 | 29% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 17 | 0-2 | 0% |
@@ -441,9 +441,21 @@ Added new methods to EditorCubit:
 - App.tsx now at 2,598 lines
 - Total reduction: 3,625 -> 2,598 lines (~1,027 lines removed, ~28.3%)
 
+### Session 7 Updates
+- **Consolidated copiedAdjustments to ClipboardCubit**
+  - Removed `copiedAdjustments` state from EditorCubit (was duplicate)
+  - Updated App.tsx to use `clipboardState.copiedAdjustments`
+  - Updated `handleCopyAdjustments` to use `clipboardCubit.copyAdjustments()` directly
+  - Updated `handlePasteAdjustments` to use `clipboardCubit.showPastedFeedback()`
+  - Made `showPastedFeedback()` public in ClipboardCubit
+  - Fixed `useContextMenus.tsx` to use `clipboardCubit.setCopiedAdjustments()`
+  - Removed unused wrappers: `setIsCopied`, `setIsPasted`, `setCopiedAdjustments`
+- EditorCubit reduced from 738 to 704 lines (~34 lines removed)
+- App.tsx reduced from 2,598 to 2,586 lines (~12 lines removed)
+- Total reduction: 3,625 -> 2,586 lines (~1,039 lines removed, ~28.7%)
+
 ### Next Steps
 1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)
 2. Move `handleImageSelect` to EditorCubit (~50 lines)
-3. Consolidate copiedAdjustments (exists in both EditorCubit and ClipboardCubit)
-4. Continue simplifying remaining handlers
-5. Target: reduce App.tsx from 2,602 to < 500 lines
+3. Continue simplifying remaining handlers
+4. Target: reduce App.tsx from 2,586 to < 500 lines

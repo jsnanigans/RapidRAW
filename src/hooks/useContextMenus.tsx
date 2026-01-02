@@ -411,7 +411,7 @@ export function useContextMenus(options: UseContextMenusOptions) {
         for (const key of COPYABLE_ADJUSTMENT_KEYS) {
           if (sourceAdjustments.hasOwnProperty(key)) adjustmentsToCopy[key] = sourceAdjustments[key];
         }
-        editorCubit.setCopiedAdjustments(adjustmentsToCopy);
+        clipboardCubit.setCopiedAdjustments(adjustmentsToCopy);
         clipboardCubit.showCopiedFeedback();
       } catch (err) {
         console.error('Failed to load metadata for copy:', err);

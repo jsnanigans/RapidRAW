@@ -34,7 +34,6 @@ export interface EditorState {
   isLoadingFullRes: boolean;
   isFullResolution: boolean;
   isViewLoading: boolean;
-  copiedAdjustments: Adjustments | null;
   copiedSectionAdjustments: any;
   activeRightPanel: Panel | null;
   renderedRightPanel: Panel | null;
@@ -81,7 +80,6 @@ const defaultState: EditorState = {
   isLoadingFullRes: false,
   isFullResolution: false,
   isViewLoading: false,
-  copiedAdjustments: null,
   copiedSectionAdjustments: null,
   activeRightPanel: Panel.Adjustments,
   renderedRightPanel: Panel.Adjustments,
@@ -432,36 +430,6 @@ export class EditorCubit extends Cubit<EditorState> {
     this.patch({ isViewLoading: loading });
   };
 
-  // Copy/paste adjustments
-  setCopiedAdjustments = (adjustments: Adjustments | null) => {
-    this.patch({ copiedAdjustments: adjustments });
-  };
-
-  copyAdjustments = () => {
-    this.patch({ copiedAdjustments: { ...this.state.adjustments } });
-  };
-
-  pasteAdjustments = (mode: 'merge' | 'replace' = 'merge', keys?: string[]) => {
-    if (!this.state.copiedAdjustments) return;
-
-    if (mode === 'replace') {
-      this.setAdjustments(this.state.copiedAdjustments);
-    } else {
-      const toPaste = keys ?? Object.keys(this.state.copiedAdjustments);
-      const updates: Partial<Adjustments> = {};
-      for (const key of toPaste) {
-        if (key in this.state.copiedAdjustments) {
-          (updates as any)[key] = (this.state.copiedAdjustments as any)[key];
-        }
-      }
-      this.setAdjustments(updates);
-    }
-  };
-
-  clearCopiedAdjustments = () => {
-    this.patch({ copiedAdjustments: null });
-  };
-
   setCopiedSectionAdjustments = (adjustments: any) => {
     this.patch({ copiedSectionAdjustments: adjustments });
   };
@@ -599,7 +567,6 @@ export class EditorCubit extends Cubit<EditorState> {
       activeRightPanel: this.state.activeRightPanel,
       renderedRightPanel: this.state.renderedRightPanel,
       collapsibleSectionsState: this.state.collapsibleSectionsState,
-      copiedAdjustments: this.state.copiedAdjustments,
       copiedSectionAdjustments: this.state.copiedSectionAdjustments,
       libraryActivePath: lastActivePath,
     });

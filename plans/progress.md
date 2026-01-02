@@ -10,7 +10,7 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,127 | < 300 | 41% |
+| App.tsx lines | 3,625 | 2,051 | < 300 | 43% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 8 | 0-2 | 53% |
@@ -498,7 +498,17 @@ Added new methods to EditorCubit:
   - App.tsx reduced from 2,236 to 2,127 lines (~109 lines removed)
 - Total reduction: 3,625 -> 2,127 lines (~1,498 lines removed, ~41.3%)
 
+### Session 9 Updates
+- **Moved zoom/full-resolution handlers to EditorCubit**
+  - Added `handleFullResolutionLogic()` method to EditorCubit
+  - Added `handleZoomChange()` method to EditorCubit
+  - Added `handleUserTransform()` method to EditorCubit
+  - App.tsx handlers now delegate to cubit methods
+  - Extracted `cancelFullResRequest()` helper function
+  - App.tsx reduced from 2,127 to 2,051 lines (~76 lines removed)
+- Total reduction: 3,625 -> 2,051 lines (~1,574 lines removed, ~43.4%)
+
 ### Next Steps
 1. Simplify remaining handlers by inlining or extracting to cubits
-2. Target: reduce App.tsx from 2,127 to < 500 lines
-3. Move remaining large handlers (handleFullResolutionLogic, handleZoomChange)
+2. Target: reduce App.tsx from 2,051 to < 500 lines
+3. Continue component prop elimination (Editor.tsx, MainLibrary.tsx)

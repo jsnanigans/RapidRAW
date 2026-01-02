@@ -745,6 +745,139 @@ export class EditorCubit extends Cubit<EditorState> {
     }
   };
 
+  // Full resolution zoom handling
+  handleFullResolutionLogic = (
+    targetZoomPercent: number,
+    options: {
+      enableZoomHifi: boolean;
+      fullResolutionUrl: string | null;
+      fullResCacheKey: string | null;
+      visualAdjustmentsKey: string;
+      requestFullResolution: (adjustments: Adjustments, key: string) => void;
+      cancelFullResRequest: () => void;
+    }
+  ) => {
+    const { enableZoomHifi, fullResolutionUrl, fullResCacheKey, visualAdjustmentsKey, requestFullResolution, cancelFullResRequest } = options;
+    const { initialFitScale, previewSize, originalSize, isFullResolution, isLoadingFullRes, adjustments } = this.state;
+
+    if (!enableZoomHifi) {
+      return;
+    }
+
+    if (!initialFitScale) {
+      return;
+    }
+
+    const highResThreshold = Math.max(initialFitScale * 2, 0.5);
+    const needsFullRes = targetZoomPercent > highResThreshold;
+    const previewIsAlreadyFullRes = previewSize.width >= originalSize.width;
+
+    if (needsFullRes && !previewIsAlreadyFullRes) {
+      if (isFullResolution) {
+        return;
+      }
+      if (fullResolutionUrl && fullResCacheKey === visualAdjustmentsKey) {
+        this.setIsFullResolution(true);
+        return;
+      }
+      if (!isLoadingFullRes) {
+        this.setIsLoadingFullRes(true);
+        requestFullResolution(adjustments, visualAdjustmentsKey);
+      }
+    } else {
+      cancelFullResRequest();
+      if (isFullResolution) {
+        this.setIsFullResolution(false);
+      }
+      if (isLoadingFullRes) {
+        this.setIsLoadingFullRes(false);
+      }
+    }
+  };
+
+  // Zoom change handling
+  handleZoomChange = (
+    zoomValue: number,
+    fitToWindow: boolean,
+    options: {
+      setZoomCallback: (zoom: number) => void;
+      handleFullResolutionLogicCallback: (targetZoomPercent: number, currentDisplayWidth: number) => void;
+    }
+  ) => {
+    const { originalSize, baseRenderSize, adjustments } = this.state;
+    const orientationSteps = adjustments.orientationSteps || 0;
+    const isSwapped = orientationSteps === 1 || orientationSteps === 3;
+    const effectiveOriginalWidth = isSwapped ? originalSize.height : originalSize.width;
+    const effectiveOriginalHeight = isSwapped ? originalSize.width : originalSize.height;
+
+    let targetZoomPercent: number;
+
+    if (fitToWindow) {
+      if (
+        effectiveOriginalWidth > 0 &&
+        effectiveOriginalHeight > 0 &&
+        baseRenderSize.width > 0 &&
+        baseRenderSize.height > 0
+      ) {
+        const originalAspect = effectiveOriginalWidth / effectiveOriginalHeight;
+        const baseAspect = baseRenderSize.width / baseRenderSize.height;
+        if (originalAspect > baseAspect) {
+          targetZoomPercent = baseRenderSize.width / effectiveOriginalWidth;
+        } else {
+          targetZoomPercent = baseRenderSize.height / effectiveOriginalHeight;
+        }
+      } else {
+        targetZoomPercent = 1.0;
+      }
+    } else {
+      targetZoomPercent = zoomValue;
+    }
+
+    targetZoomPercent = Math.max(0.1, Math.min(2.0, targetZoomPercent));
+
+    let transformZoom = 1.0;
+    if (
+      effectiveOriginalWidth > 0 &&
+      effectiveOriginalHeight > 0 &&
+      baseRenderSize.width > 0 &&
+      baseRenderSize.height > 0
+    ) {
+      const originalAspect = effectiveOriginalWidth / effectiveOriginalHeight;
+      const baseAspect = baseRenderSize.width / baseRenderSize.height;
+      if (originalAspect > baseAspect) {
+        transformZoom = (targetZoomPercent * effectiveOriginalWidth) / baseRenderSize.width;
+      } else {
+        transformZoom = (targetZoomPercent * effectiveOriginalHeight) / baseRenderSize.height;
+      }
+    }
+
+    options.setZoomCallback(transformZoom);
+    const currentDisplayWidth = baseRenderSize.width * transformZoom;
+    options.handleFullResolutionLogicCallback(targetZoomPercent, currentDisplayWidth);
+  };
+
+  // Handle user transform (from TransformWrapper)
+  handleUserTransform = (
+    transformScale: number,
+    options: {
+      handleFullResolutionLogicCallback: (targetZoomPercent: number, currentDisplayWidth: number) => void;
+    }
+  ) => {
+    const { originalSize, baseRenderSize, adjustments } = this.state;
+
+    this.setZoom(transformScale);
+
+    if (originalSize.width > 0 && baseRenderSize.width > 0) {
+      const orientationSteps = adjustments.orientationSteps || 0;
+      const isSwapped = orientationSteps === 1 || orientationSteps === 3;
+      const effectiveOriginalWidth = isSwapped ? originalSize.height : originalSize.width;
+
+      const targetZoomPercent = (baseRenderSize.width * transformScale) / effectiveOriginalWidth;
+      const currentDisplayWidth = baseRenderSize.width * transformScale;
+      options.handleFullResolutionLogicCallback(targetZoomPercent, currentDisplayWidth);
+    }
+  };
+
   // Back to library handler
   backToLibrary = () => {
     const lastActivePath = this.state.selectedImage?.path ?? null;

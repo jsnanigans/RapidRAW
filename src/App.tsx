@@ -1181,108 +1181,40 @@ function App() {
     }
   }, [adjustments, isFullResolution, selectedImage?.path, requestFullResolution, visualAdjustmentsKey]);
 
-  const handleFullResolutionLogic = useCallback(
-    (targetZoomPercent: number, currentDisplayWidth: number) => {
-      if (appSettings?.enableZoomHifi === false) {
-        return;
-      }
+  const cancelFullResRequest = useCallback(() => {
+    if (fullResRequestRef.current) {
+      fullResRequestRef.current.cancelled = true;
+    }
+    if (requestFullResolution.cancel) {
+      requestFullResolution.cancel();
+    }
+  }, [requestFullResolution]);
 
-      if (!initialFitScale) {
-        return;
-      }
-      const highResThreshold = Math.max(initialFitScale * 2, 0.5);
-      const needsFullRes = targetZoomPercent > highResThreshold;
-      const previewIsAlreadyFullRes = previewSize.width >= originalSize.width;
-      if (needsFullRes && !previewIsAlreadyFullRes) {
-        if (isFullResolution) {
-          return;
-        }
-        if (fullResolutionUrl && fullResCacheKeyRef.current === visualAdjustmentsKey) {
-          setIsFullResolution(true);
-          return;
-        }
-        if (!isLoadingFullRes) {
-          setIsLoadingFullRes(true);
-          requestFullResolution(adjustments, visualAdjustmentsKey);
-        }
-      } else {
-        if (fullResRequestRef.current) {
-          fullResRequestRef.current.cancelled = true;
-        }
-        if (requestFullResolution.cancel) {
-          requestFullResolution.cancel();
-        }
-        if (isFullResolution) {
-          setIsFullResolution(false);
-        }
-        if (isLoadingFullRes) {
-          setIsLoadingFullRes(false);
-        }
-      }
+  const handleFullResolutionLogic = useCallback(
+    (targetZoomPercent: number, _currentDisplayWidth: number) => {
+      editorCubit.handleFullResolutionLogic(targetZoomPercent, {
+        enableZoomHifi: appSettings?.enableZoomHifi !== false,
+        fullResolutionUrl,
+        fullResCacheKey: fullResCacheKeyRef.current,
+        visualAdjustmentsKey,
+        requestFullResolution,
+        cancelFullResRequest,
+      });
     },
-    [
-      initialFitScale,
-      previewSize.width,
-      originalSize.width,
-      isFullResolution,
-      isLoadingFullRes,
-      requestFullResolution,
-      adjustments,
-      fullResolutionUrl,
-      visualAdjustmentsKey,
-      appSettings,
-    ],
+    [editorCubit, appSettings?.enableZoomHifi, fullResolutionUrl, visualAdjustmentsKey, requestFullResolution, cancelFullResRequest],
   );
 
   const handleZoomChange = useCallback(
     (zoomValue: number, fitToWindow: boolean = false) => {
-      let targetZoomPercent: number;
-      const orientationSteps = adjustments.orientationSteps || 0;
-      const isSwapped = orientationSteps === 1 || orientationSteps === 3;
-      const effectiveOriginalWidth = isSwapped ? originalSize.height : originalSize.width;
-      const effectiveOriginalHeight = isSwapped ? originalSize.width : originalSize.height;
-      if (fitToWindow) {
-        if (
-          effectiveOriginalWidth > 0 &&
-          effectiveOriginalHeight > 0 &&
-          baseRenderSize.width > 0 &&
-          baseRenderSize.height > 0
-        ) {
-          const originalAspect = effectiveOriginalWidth / effectiveOriginalHeight;
-          const baseAspect = baseRenderSize.width / baseRenderSize.height;
-          if (originalAspect > baseAspect) {
-            targetZoomPercent = baseRenderSize.width / effectiveOriginalWidth;
-          } else {
-            targetZoomPercent = baseRenderSize.height / effectiveOriginalHeight;
-          }
-        } else {
-          targetZoomPercent = 1.0;
-        }
-      } else {
-        targetZoomPercent = zoomValue;
-      }
-      targetZoomPercent = Math.max(0.1, Math.min(2.0, targetZoomPercent));
-      let transformZoom = 1.0;
-      if (
-        effectiveOriginalWidth > 0 &&
-        effectiveOriginalHeight > 0 &&
-        baseRenderSize.width > 0 &&
-        baseRenderSize.height > 0
-      ) {
-        const originalAspect = effectiveOriginalWidth / effectiveOriginalHeight;
-        const baseAspect = baseRenderSize.width / baseRenderSize.height;
-        if (originalAspect > baseAspect) {
-          transformZoom = (targetZoomPercent * effectiveOriginalWidth) / baseRenderSize.width;
-        } else {
-          transformZoom = (targetZoomPercent * effectiveOriginalHeight) / baseRenderSize.height;
-        }
-      }
-      isProgrammaticZoom.current = true;
-      setZoom(transformZoom);
-      const currentDisplayWidth = baseRenderSize.width * transformZoom;
-      handleFullResolutionLogic(targetZoomPercent, currentDisplayWidth);
+      editorCubit.handleZoomChange(zoomValue, fitToWindow, {
+        setZoomCallback: (zoom: number) => {
+          isProgrammaticZoom.current = true;
+          setZoom(zoom);
+        },
+        handleFullResolutionLogicCallback: handleFullResolutionLogic,
+      });
     },
-    [originalSize, baseRenderSize, handleFullResolutionLogic, adjustments.orientationSteps],
+    [editorCubit, handleFullResolutionLogic],
   );
 
   const handleUserTransform = useCallback(
@@ -1292,19 +1224,11 @@ function App() {
         return;
       }
 
-      setZoom(transformState.scale);
-
-      if (originalSize.width > 0 && baseRenderSize.width > 0) {
-        const orientationSteps = adjustments.orientationSteps || 0;
-        const isSwapped = orientationSteps === 1 || orientationSteps === 3;
-        const effectiveOriginalWidth = isSwapped ? originalSize.height : originalSize.width;
-
-        const targetZoomPercent = (baseRenderSize.width * transformState.scale) / effectiveOriginalWidth;
-        const currentDisplayWidth = baseRenderSize.width * transformState.scale;
-        handleFullResolutionLogic(targetZoomPercent, currentDisplayWidth);
-      }
+      editorCubit.handleUserTransform(transformState.scale, {
+        handleFullResolutionLogicCallback: handleFullResolutionLogic,
+      });
     },
-    [originalSize, baseRenderSize, handleFullResolutionLogic, adjustments.orientationSteps],
+    [editorCubit, handleFullResolutionLogic],
   );
 
   const isAnyModalOpen = 

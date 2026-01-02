@@ -2403,20 +2403,13 @@ function App() {
               onMouseDown={createResizeHandler('bottom', bottomPanelHeight)}
             />
             <BottomBar
-              filmstripHeight={bottomPanelHeight}
-              isCopyDisabled={!selectedImage}
-              isPasteDisabled={copiedAdjustments === null}
-              isRatingDisabled={!selectedImage}
-              isResizing={isResizing}
               onClearSelection={handleClearSelection}
               onContextMenu={handleThumbnailContextMenu}
               onCopy={handleCopyAdjustments}
-              onOpenCopyPasteSettings={() => modalsCubit.openCopyPasteSettings()}
               onImageSelect={handleImageClick}
               onPaste={() => handlePasteAdjustments()}
               onRate={handleRate}
               onZoomChange={handleZoomChange}
-              rating={adjustments.rating || 0}
             />
           </div>
 
@@ -2469,19 +2462,10 @@ function App() {
           )}
           {rootPath && (
             <BottomBar
-              isCopyDisabled={multiSelectedPaths.length !== 1}
-              isExportDisabled={multiSelectedPaths.length === 0}
-              isLibraryView={true}
-              isPasteDisabled={copiedAdjustments === null || multiSelectedPaths.length === 0}
-              isRatingDisabled={multiSelectedPaths.length === 0}
-              isResetDisabled={multiSelectedPaths.length === 0}
               onCopy={handleCopyAdjustments}
-              onExportClick={() => setIsLibraryExportPanelVisible(!isLibraryExportPanelVisible)}
-              onOpenCopyPasteSettings={() => modalsCubit.openCopyPasteSettings()}
               onPaste={() => handlePasteAdjustments()}
               onRate={handleRate}
               onReset={() => handleResetAdjustments()}
-              rating={libraryActiveAdjustments.rating || 0}
             />
           )}
         </div>

@@ -10,10 +10,10 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,586 | < 300 | 29% |
+| App.tsx lines | 3,625 | 2,570 | < 300 | 29% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
-| BottomBar.tsx props | 17 | 17 | 0-2 | 0% |
+| BottomBar.tsx props | 17 | 8 | 0-2 | 53% |
 | Context menu lines | ~600 | 0 (extracted) | 0 | 100% |
 
 ---
@@ -454,8 +454,16 @@ Added new methods to EditorCubit:
 - App.tsx reduced from 2,598 to 2,586 lines (~12 lines removed)
 - Total reduction: 3,625 -> 2,586 lines (~1,039 lines removed, ~28.7%)
 
+- **Refactored BottomBar.tsx to use cubits directly**
+  - Reduced props from 17 to 8 (eliminated 9 props)
+  - BottomBar now uses NavigationCubit, UICubit, ModalsCubit directly
+  - Computes `isLibraryView`, `rating`, disabled states internally
+  - Handles export click and copy/paste settings internally
+  - App.tsx reduced from 2,586 to 2,570 lines (~16 lines removed)
+- Total reduction: 3,625 -> 2,570 lines (~1,055 lines removed, ~29.1%)
+
 ### Next Steps
 1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)
 2. Move `handleImageSelect` to EditorCubit (~50 lines)
 3. Continue simplifying remaining handlers
-4. Target: reduce App.tsx from 2,586 to < 500 lines
+4. Target: reduce App.tsx from 2,570 to < 500 lines

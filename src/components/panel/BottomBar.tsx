@@ -1,31 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { Star, Copy, ClipboardPaste, RotateCcw, ChevronUp, ChevronDown, Check, Save, Settings } from 'lucide-react';
 import clsx from 'clsx';
-import { useBloc } from '@blac/react';
+import { useBloc, useBlocActions } from '@blac/react';
 import Filmstrip from './Filmstrip';
 import { GLOBAL_KEYS, ThumbnailAspectRatio } from '../ui/AppProperties';
-import { ClipboardCubit, EditorCubit, LibraryCubit, SettingsCubit } from '../../cubits';
+import { ClipboardCubit, EditorCubit, LibraryCubit, ModalsCubit, NavigationCubit, SettingsCubit, UICubit } from '../../cubits';
 
 interface BottomBarProps {
-  filmstripHeight?: number;
-  isCopyDisabled: boolean;
-  isExportDisabled?: boolean;
-  isLibraryView?: boolean;
-  isPasteDisabled: boolean;
-  isRatingDisabled?: boolean;
-  isResetDisabled?: boolean;
-  isResizing?: boolean;
   onClearSelection?(): void;
   onContextMenu?(event: any, path: string): void;
   onCopy(): void;
-  onExportClick?(): void;
   onImageSelect?(path: string, event: any): void;
-  onOpenCopyPasteSettings?(): void;
   onPaste(): void;
   onRate(rate: number): void;
   onReset?(): void;
   onZoomChange?(zoomValue: number, fitToWindow?: boolean): void;
-  rating: number;
 }
 
 interface StarRatingProps {
@@ -66,44 +55,61 @@ const StarRating = ({ rating, onRate, disabled }: StarRatingProps) => {
 };
 
 export default function BottomBar({
-  filmstripHeight,
-  isCopyDisabled,
-  isExportDisabled,
-  isLibraryView = false,
-  isPasteDisabled,
-  isRatingDisabled = false,
-  isResetDisabled = false,
-  isResizing,
   onClearSelection,
   onContextMenu,
   onCopy,
-  onExportClick,
   onImageSelect,
-  onOpenCopyPasteSettings,
   onPaste,
   onRate,
   onReset,
   onZoomChange = () => {},
-  rating,
 }: BottomBarProps) {
   // Get state from cubits
   const [editorState] = useBloc(EditorCubit);
   const [libraryState, libraryCubit] = useBloc(LibraryCubit);
   const [settingsState, settingsCubit] = useBloc(SettingsCubit);
   const [clipboardState] = useBloc(ClipboardCubit);
+  const [navigationState] = useBloc(NavigationCubit);
+  const [uiState, uiCubit] = useBloc(UICubit);
+  const modalsCubit = useBlocActions(ModalsCubit);
   
-  const { isCopied, isPasted } = clipboardState;
+  const { isCopied, isPasted, copiedAdjustments } = clipboardState;
 
   // Destructure cubit state
-  const { selectedImage, displaySize, originalSize, isViewLoading: isLoading } = editorState;
+  const { selectedImage, displaySize, originalSize, isViewLoading: isLoading, adjustments, libraryActiveAdjustments } = editorState;
   const { thumbnails, multiSelectedPaths, imageRatings } = libraryState;
   const { appSettings } = settingsState;
+  const { activeView } = navigationState;
+  const { bottomPanelHeight: filmstripHeight, isResizing, isLibraryExportPanelVisible } = uiState;
+  
+  // Compute derived values
+  const isLibraryView = activeView === 'library';
+  const rating = isLibraryView ? (libraryActiveAdjustments.rating || 0) : (adjustments.rating || 0);
+  
+  // Compute disabled states
+  const isCopyDisabled = isLibraryView ? multiSelectedPaths.length !== 1 : !selectedImage;
+  const isPasteDisabled = isLibraryView 
+    ? (copiedAdjustments === null || multiSelectedPaths.length === 0) 
+    : copiedAdjustments === null;
+  const isRatingDisabled = isLibraryView ? multiSelectedPaths.length === 0 : !selectedImage;
+  const isResetDisabled = multiSelectedPaths.length === 0;
+  const isExportDisabled = multiSelectedPaths.length === 0;
   
   const thumbnailAspectRatio = appSettings?.thumbnailAspectRatio ?? ThumbnailAspectRatio.Cover;
   const isFilmstripVisible = appSettings?.uiVisibility?.filmstrip ?? true;
 
   // Get sorted image list from LibraryCubit getter
   const imageList = libraryCubit.sortedImageList;
+  
+  // Handler for export click
+  const handleExportClick = () => {
+    uiCubit.setIsLibraryExportPanelVisible(!isLibraryExportPanelVisible);
+  };
+  
+  // Handler for copy/paste settings
+  const handleOpenCopyPasteSettings = () => {
+    modalsCubit.openCopyPasteSettings();
+  };
 
   const [isEditingPercent, setIsEditingPercent] = useState(false);
   const [percentInputValue, setPercentInputValue] = useState('');
@@ -247,7 +253,7 @@ export default function BottomBar({
             </button>
             <button
               className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors"
-              onClick={onOpenCopyPasteSettings}
+              onClick={handleOpenCopyPasteSettings}
               title="Copy & Paste Settings"
             >
               <Settings size={18} />
@@ -277,7 +283,7 @@ export default function BottomBar({
             <button
               className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
               disabled={isExportDisabled}
-              onClick={onExportClick}
+              onClick={handleExportClick}
               title="Export Selected Images"
             >
               <Save size={18} />

@@ -3,7 +3,7 @@ import { useBloc } from '@blac/react';
 import { getVersion } from '@tauri-apps/api/app';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-shell';
-import { LibraryCubit, SettingsCubit, NavigationCubit } from '../../cubits';
+import { LibraryCubit, SettingsCubit, NavigationCubit, EditorCubit, ComfyUICubit, ExportImportCubit, IndexingCubit, UICubit } from '../../cubits';
 import {
   AlertTriangle,
   Check,
@@ -69,14 +69,6 @@ interface SearchCriteria {
 }
 
 interface MainLibraryProps {
-  activePath: string | null;
-  aiModelDownloadStatus: string | null;
-  importState: ImportState;
-  indexingProgress: Progress;
-  isLoading: boolean;
-  isThumbnailsLoading?: boolean;
-  isIndexing: boolean;
-  libraryScrollTop: number;
   onContextMenu(event: any, path: string): void;
   onContinueSession(): void;
   onEmptyAreaContextMenu(event: any): void;
@@ -85,8 +77,6 @@ interface MainLibraryProps {
   onImageDoubleClick(path: string): void;
   onLibraryRefresh(): void;
   onOpenFolder(): void;
-  setLibraryScrollTop(scrollTop: number): void;
-  onNavigateToCommunity(): void;
 }
 
 interface SearchInputProps {
@@ -1086,14 +1076,6 @@ const Row = ({ index, style, data }: any) => {
 };
 
 export default function MainLibrary({
-  activePath,
-  aiModelDownloadStatus,
-  importState,
-  indexingProgress,
-  isIndexing,
-  isLoading,
-  isThumbnailsLoading,
-  libraryScrollTop,
   onContextMenu,
   onContinueSession,
   onEmptyAreaContextMenu,
@@ -1102,13 +1084,28 @@ export default function MainLibrary({
   onImageDoubleClick,
   onLibraryRefresh,
   onOpenFolder,
-  setLibraryScrollTop,
-  onNavigateToCommunity,
 }: MainLibraryProps) {
   // Get state from cubits - single source of truth
   const [libraryState, libraryCubit] = useBloc(LibraryCubit);
   const [settingsState, settingsCubit] = useBloc(SettingsCubit);
   const [navigationState, navigationCubit] = useBloc(NavigationCubit);
+  const [editorState] = useBloc(EditorCubit);
+  const [comfyUIState] = useBloc(ComfyUICubit);
+  const [exportImportState] = useBloc(ExportImportCubit);
+  const [indexingState] = useBloc(IndexingCubit);
+  const [uiState, uiCubit] = useBloc(UICubit);
+
+  // Derived state from cubits (previously props)
+  const activePath = editorState.libraryActivePath;
+  const aiModelDownloadStatus = comfyUIState.modelDownloadStatus;
+  const importState = exportImportState.import;
+  const indexingProgress = indexingState.progress;
+  const isIndexing = indexingState.isIndexing;
+  const isLoading = editorState.isViewLoading;
+  const isThumbnailsLoading = libraryState.isThumbnailsLoading;
+  const libraryScrollTop = uiState.libraryScrollTop;
+  const setLibraryScrollTop = uiCubit.setLibraryScrollTop;
+  const onNavigateToCommunity = navigationCubit.switchToCommunity;
 
   // Destructure library state
   const {

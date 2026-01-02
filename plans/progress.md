@@ -10,9 +10,9 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,033 | < 300 | 44% |
+| App.tsx lines | 3,625 | 2,023 | < 300 | 44% |
 | Editor.tsx props | 18 | 6 | 0-2 | 67% |
-| MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
+| MainLibrary.tsx props | 18 | 8 | 0-2 | 56% |
 | BottomBar.tsx props | 17 | 8 | 0-2 | 53% |
 | Context menu lines | ~600 | 0 (extracted) | 0 | 100% |
 
@@ -213,9 +213,10 @@ Current issue: MasksCubit receives EditorCubit as a method parameter instead of 
 - [x] Use LibraryCubit for thumbnails
 
 ### 3.5 Update MainLibrary.tsx
-- [ ] Remove unnecessary props
-- [ ] Use LibraryCubit directly
-- [ ] Use NavigationCubit directly
+- [x] Remove unnecessary props (18 → 8)
+- [x] Use LibraryCubit directly
+- [x] Use NavigationCubit directly
+- [x] Use EditorCubit, ComfyUICubit, ExportImportCubit, IndexingCubit, UICubit
 
 ### 3.6 Update BottomBar.tsx
 - [x] Remove isCopied/isPasted props
@@ -519,7 +520,16 @@ Added new methods to EditorCubit:
   - App.tsx reduced from 2,051 to 2,033 lines (~18 lines removed)
 - Total reduction: 3,625 -> 2,033 lines (~1,592 lines removed, ~43.9%)
 
+### Session 11 Updates
+- **Refactored MainLibrary.tsx to use cubits directly**
+  - Reduced props from 18 to 8 (eliminated 10 props)
+  - Removed: activePath, aiModelDownloadStatus, importState, indexingProgress, isIndexing, isLoading, isThumbnailsLoading, libraryScrollTop, setLibraryScrollTop, onNavigateToCommunity
+  - Now uses EditorCubit, ComfyUICubit, ExportImportCubit, IndexingCubit, UICubit directly
+  - Removed unused setLibraryScrollTop wrapper from App.tsx
+  - App.tsx reduced from 2,033 to 2,023 lines (~10 lines removed)
+- Total reduction: 3,625 -> 2,023 lines (~1,602 lines removed, ~44.2%)
+
 ### Next Steps
-1. Continue component prop elimination (MainLibrary.tsx - 17 props)
-2. Simplify remaining handlers by inlining or extracting to cubits
-3. Target: reduce App.tsx from 2,033 to < 500 lines
+1. Continue simplifying remaining handlers
+2. Consider extracting more layout components
+3. Target: reduce App.tsx from 2,023 to < 500 lines

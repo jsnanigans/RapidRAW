@@ -341,7 +341,7 @@ function App() {
 
   // Wrapper setters for backward compatibility (delegate to cubits)
   const setIsLibraryExportPanelVisible = uiCubit.setIsLibraryExportPanelVisible;
-  const setLibraryScrollTop = uiCubit.setLibraryScrollTop;
+
 
   const setExportState = (state: Partial<ExportState> | ((prev: ExportState) => ExportState)) => {
     if (typeof state === 'function') {
@@ -1903,14 +1903,6 @@ function App() {
             />
           ) : (
             <MainLibrary
-              activePath={libraryActivePath}
-              aiModelDownloadStatus={aiModelDownloadStatus}
-              importState={importState}
-              indexingProgress={indexingProgress}
-              isIndexing={isIndexing}
-              isThumbnailsLoading={isThumbnailsLoading}
-              isLoading={isViewLoading}
-              libraryScrollTop={libraryScrollTop}
               onContextMenu={handleThumbnailContextMenu}
               onContinueSession={handleContinueSession}
               onEmptyAreaContextMenu={handleMainLibraryContextMenu}
@@ -1919,8 +1911,6 @@ function App() {
               onImageDoubleClick={handleImageSelect}
               onLibraryRefresh={handleLibraryRefresh}
               onOpenFolder={handleOpenFolder}
-              setLibraryScrollTop={setLibraryScrollTop}
-              onNavigateToCommunity={() => navigationCubit.switchToCommunity()}
             />
           )}
           {rootPath && (

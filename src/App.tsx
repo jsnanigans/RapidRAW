@@ -901,18 +901,10 @@ function App() {
   }, []);
 
   const handleBackToLibrary = useCallback(() => {
-    const lastActivePath = selectedImage?.path ?? null;
-    setSelectedImage(null);
-    setFinalPreviewUrl(null);
-    setUncroppedAdjustedPreviewUrl(null);
-    setHistogram(null);
-    setWaveform(null);
-    setIsWaveformVisible(false);
+    editorCubit.clearSelectedImage();
     masksCubit.clearActiveMask();
     masksCubit.clearActiveAiPatch();
-    setIsWbPickerActive(false);
-    setLibraryActivePath(lastActivePath);
-  }, [selectedImage?.path, masksCubit]);
+  }, [editorCubit, masksCubit]);
 
   const handleImageSelect = useCallback(
     (path: string) => {

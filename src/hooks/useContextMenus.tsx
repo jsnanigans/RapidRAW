@@ -69,7 +69,6 @@ interface ContextMenuHandlers {
   handlePasteAdjustments: (paths?: string[]) => void;
   handleRate: (rating: number, paths?: string[]) => void;
   handleSetColorLabel: (color: string | null, paths?: string[]) => void;
-  handleRenameFiles: (paths: string[]) => void;
   handleResetAdjustments: (paths?: string[]) => void;
   handleLibraryRefresh: () => void;
   handleTogglePinFolder: (path: string) => void;
@@ -126,7 +125,6 @@ export function useContextMenus(options: UseContextMenusOptions) {
     handlePasteAdjustments,
     handleRate,
     handleSetColorLabel,
-    handleRenameFiles,
     handleResetAdjustments,
     handleLibraryRefresh,
     handleTogglePinFolder,
@@ -530,7 +528,7 @@ export function useContextMenus(options: UseContextMenusOptions) {
           }
         },
       },
-      { icon: FileEdit, label: renameLabel, onClick: () => handleRenameFiles(finalSelection) },
+      { icon: FileEdit, label: renameLabel, onClick: () => modalsCubit.openRenameFile(finalSelection) },
       { type: OPTION_SEPARATOR },
       {
         icon: Star,
@@ -595,7 +593,6 @@ export function useContextMenus(options: UseContextMenusOptions) {
     handlePasteAdjustments,
     handleRate,
     handleSetColorLabel,
-    handleRenameFiles,
     handleResetAdjustments,
     handleLibraryRefresh,
     handleTagsChanged,

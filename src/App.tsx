@@ -1596,12 +1596,6 @@ function App() {
     }
   };
 
-  const handleRenameFiles = useCallback(async (paths: Array<string>) => {
-    if (paths && paths.length > 0) {
-      modalsCubit.openRenameFile(paths);
-    }
-  }, [modalsCubit]);
-
   const handleSaveRename = useCallback(
     async (nameTemplate: string) => {
       const renameTargetPaths = modalsState.renameFile.paths || [];
@@ -1717,7 +1711,6 @@ function App() {
       handlePasteAdjustments,
       handleRate,
       handleSetColorLabel,
-      handleRenameFiles,
       handleResetAdjustments,
       handleLibraryRefresh,
       handleTogglePinFolder,

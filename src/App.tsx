@@ -469,152 +469,16 @@ function App() {
 
   const handleGenerativeReplace = useCallback(
     async (patchId: string, prompt: string, useFastInpaint: boolean) => {
-      if (!selectedImage?.path || isGeneratingAi) {
-        return;
-      }
-
-      const patch: AiPatch | undefined = adjustments.aiPatches.find((p: AiPatch) => p.id === patchId);
-      if (!patch) {
-        console.error('Could not find AI patch to generate for:', patchId);
-        return;
-      }
-
-      const patchDefinition = { ...patch, prompt };
-
-      setAdjustments((prev: Adjustments) => ({
-        ...prev,
-        aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: true, prompt } : p)),
-      }));
-
-      setIsGeneratingAi(true);
-
-      try {
-        const newPatchDataJson: any = await invoke(Invokes.InvokeGenerativeReplaseWithMaskDef, {
-          currentAdjustments: adjustments,
-          patchDefinition: patchDefinition,
-          path: selectedImage.path,
-          useFastInpaint: useFastInpaint,
-        });
-
-        const newPatchData = JSON.parse(newPatchDataJson);
-        setAdjustments((prev: Adjustments) => ({
-          ...prev,
-          aiPatches: prev.aiPatches.map((p: AiPatch) =>
-            p.id === patchId
-              ? {
-                  ...p,
-                  patchData: newPatchData,
-                  isLoading: false,
-                  name: useFastInpaint ? 'Inpaint' : prompt && prompt.trim() ? prompt.trim() : p.name,
-                }
-              : p,
-          ),
-        }));
-        masksCubit.clearActiveAiPatch();
-      } catch (err) {
-        console.error('Generative replace failed:', err);
-        setError(`AI Replace Failed: ${err}`);
-        setAdjustments((prev: Adjustments) => ({
-          ...prev,
-          aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
-        }));
-      } finally {
-        setIsGeneratingAi(false);
-      }
+      await comfyUICubit.generativeReplace(patchId, prompt, useFastInpaint, editorCubit, masksCubit);
     },
-    [selectedImage?.path, isGeneratingAi, adjustments, setAdjustments, masksCubit],
+    [comfyUICubit, editorCubit, masksCubit],
   );
 
   const handleQuickErase = useCallback(
     async (subMaskId: string | null, startPoint: Coord, endPoint: Coord) => {
-      if (!selectedImage?.path || isGeneratingAi) {
-        return;
-      }
-
-      const patchId = adjustments.aiPatches.find((p: AiPatch) =>
-        p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
-      )?.id;
-      if (!patchId) {
-        console.error('Could not find AI patch container for Quick Erase.');
-        return;
-      }
-
-      setIsGeneratingAi(true);
-      setAdjustments((prev: Partial<Adjustments>) => ({
-        ...prev,
-        aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: true } : p)),
-      }));
-
-      try {
-        const newMaskParams: any = await invoke(Invokes.GenerateAiSubjectMask, {
-          endPoint: [endPoint.x, endPoint.y],
-          flipHorizontal: adjustments.flipHorizontal,
-          flipVertical: adjustments.flipVertical,
-          orientationSteps: adjustments.orientationSteps,
-          path: selectedImage.path,
-          rotation: adjustments.rotation,
-          startPoint: [startPoint.x, startPoint.y],
-        });
-
-        const subMaskToUpdate = adjustments.aiPatches
-          ?.find((p: AiPatch) => p.id === patchId)
-          ?.subMasks.find((sm: SubMask) => sm.id === subMaskId);
-        const finalSubMaskParams: any = { ...subMaskToUpdate?.parameters, ...newMaskParams };
-        const updatedAdjustmentsForBackend = {
-          ...adjustments,
-          aiPatches: adjustments.aiPatches.map((p: AiPatch) =>
-            p.id === patchId
-              ? {
-                  ...p,
-                  subMasks: p.subMasks.map((sm: SubMask) =>
-                    sm.id === subMaskId ? { ...sm, parameters: finalSubMaskParams } : sm,
-                  ),
-                }
-              : p,
-          ),
-        };
-
-        const patchDefinitionForBackend = updatedAdjustmentsForBackend.aiPatches.find((p: AiPatch) => p.id === patchId);
-        const newPatchDataJson: any = await invoke(Invokes.InvokeGenerativeReplaseWithMaskDef, {
-          currentAdjustments: updatedAdjustmentsForBackend,
-          patchDefinition: { ...patchDefinitionForBackend, prompt: '' },
-          path: selectedImage.path,
-          useFastInpaint: true,
-        });
-
-        const newPatchData = JSON.parse(newPatchDataJson);
-        if (!newPatchData?.color || !newPatchData?.mask) {
-          throw new Error('Inpainting failed to return a valid result.');
-        }
-
-        setAdjustments((prev: Partial<Adjustments>) => ({
-          ...prev,
-          aiPatches: prev.aiPatches?.map((p: AiPatch) =>
-            p.id === patchId
-              ? {
-                  ...p,
-                  patchData: newPatchData,
-                  isLoading: false,
-                  subMasks: p.subMasks.map((sm: SubMask) =>
-                    sm.id === subMaskId ? { ...sm, parameters: finalSubMaskParams } : sm,
-                  ),
-                }
-              : p,
-          ),
-        }));
-        masksCubit.clearActiveAiPatch();
-      } catch (err: any) {
-        console.error('Quick Erase failed:', err);
-        setError(`Quick Erase Failed: ${err.message || String(err)}`);
-        setAdjustments((prev: Partial<Adjustments>) => ({
-          ...prev,
-          aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
-        }));
-      } finally {
-        setIsGeneratingAi(false);
-      }
+      await comfyUICubit.quickErase(subMaskId, startPoint, endPoint, editorCubit, masksCubit);
     },
-    [selectedImage?.path, isGeneratingAi, adjustments, setAdjustments, masksCubit],
+    [comfyUICubit, editorCubit, masksCubit],
   );
 
   const handleDeleteMaskContainer = useCallback(
@@ -1161,49 +1025,18 @@ function App() {
 
   const handleImageSelect = useCallback(
     (path: string) => {
-      if (selectedImage?.path === path) {
-        return;
-      }
       applyAdjustments.cancel();
       debouncedSave.cancel();
 
-      setSelectedImage({
-        exif: null,
-        height: 0,
-        isRaw: false,
-        isReady: false,
-        metadata: null,
-        originalUrl: null,
-        path,
-        thumbnailUrl: thumbnails[path],
-        width: 0,
-      });
-      setOriginalSize({ width: 0, height: 0 });
-      setPreviewSize({ width: 0, height: 0 });
-      libraryCubit.setSelection([path]);
-      setLibraryActivePath(null);
-      setIsViewLoading(true);
-      setError(null);
-      setHistogram(null);
-      setFinalPreviewUrl(null);
-      setUncroppedAdjustedPreviewUrl(null);
-      setFullScreenUrl(null);
-      setFullResolutionUrl(null);
-      setTransformedOriginalUrl(null);
-      resetAdjustmentsHistory(INITIAL_ADJUSTMENTS);
-      setShowOriginal(false);
-      masksCubit.clearActiveMask();
-      masksCubit.clearActiveAiPatch();
-      setIsWbPickerActive(false); 
-
-      if (transformWrapperRef.current) {
-        transformWrapperRef.current.resetTransform(0);
+      const selected = editorCubit.selectImage(path, thumbnails[path], masksCubit, libraryCubit);
+      if (selected) {
+        if (transformWrapperRef.current) {
+          transformWrapperRef.current.resetTransform(0);
+        }
+        setIsLibraryExportPanelVisible(false);
       }
-
-      setZoom(1);
-      setIsLibraryExportPanelVisible(false);
     },
-    [selectedImage?.path, applyAdjustments, debouncedSave, thumbnails, resetAdjustmentsHistory, masksCubit],
+    [applyAdjustments, debouncedSave, thumbnails, masksCubit, libraryCubit, editorCubit],
   );
 
   const executeDelete = useCallback(

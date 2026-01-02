@@ -218,6 +218,56 @@ export class EditorCubit extends Cubit<EditorState> {
     }));
   };
 
+  selectImage = (
+    path: string,
+    thumbnailUrl: string | undefined,
+    masksCubit: { clearActiveMask: () => void; clearActiveAiPatch: () => void },
+    libraryCubit: { setSelection: (paths: string[]) => void }
+  ) => {
+    if (this.state.selectedImage?.path === path) {
+      return false;
+    }
+
+    this.emit({
+      ...this.state,
+      selectedImage: {
+        exif: null,
+        height: 0,
+        isRaw: false,
+        isReady: false,
+        metadata: null,
+        originalUrl: null,
+        path,
+        thumbnailUrl: thumbnailUrl || '',
+        width: 0,
+      },
+      originalSize: { width: 0, height: 0 },
+      previewSize: { width: 0, height: 0 },
+      isViewLoading: true,
+      error: null,
+      histogram: null,
+      finalPreviewUrl: null,
+      uncroppedAdjustedPreviewUrl: null,
+      fullScreenUrl: null,
+      fullResolutionUrl: null,
+      transformedOriginalUrl: null,
+      adjustments: INITIAL_ADJUSTMENTS,
+      history: [INITIAL_ADJUSTMENTS],
+      historyIndex: 0,
+      zoom: 1,
+      pan: { x: 0, y: 0 },
+      showOriginal: false,
+      isWbPickerActive: false,
+      libraryActivePath: null,
+    });
+
+    libraryCubit.setSelection([path]);
+    masksCubit.clearActiveMask();
+    masksCubit.clearActiveAiPatch();
+
+    return true;
+  };
+
   // Adjustments management with history
   private addToHistory = (newAdjustments: Adjustments) => {
     this.update((state) => {

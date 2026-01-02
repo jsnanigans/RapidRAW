@@ -10,7 +10,7 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,499 | < 300 | 31% |
+| App.tsx lines | 3,625 | 2,332 | < 300 | 36% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 8 | 0-2 | 53% |
@@ -465,10 +465,17 @@ Added new methods to EditorCubit:
   - Added `setColorLabel()` method to LibraryCubit
   - App.tsx handlers now delegate to cubit methods
   - App.tsx reduced from 2,570 to 2,499 lines (~71 lines removed)
-- Total reduction: 3,625 -> 2,499 lines (~1,126 lines removed, ~31.1%)
+- **Moved handleImageSelect to EditorCubit**
+  - Added `selectImage()` method to EditorCubit
+  - Handles all state reset and cubit coordination
+  - App.tsx reduced from 2,499 to 2,468 lines (~31 lines removed)
+- **Moved AI handlers to ComfyUICubit**
+  - Added `generativeReplace()` method to ComfyUICubit
+  - Added `quickErase()` method to ComfyUICubit
+  - App.tsx reduced from 2,468 to 2,332 lines (~136 lines removed)
+- Total reduction: 3,625 -> 2,332 lines (~1,293 lines removed, ~35.7%)
 
 ### Next Steps
 1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)
-2. Move `handleImageSelect` to EditorCubit (~50 lines)
-3. Continue simplifying remaining handlers
-4. Target: reduce App.tsx from 2,499 to < 500 lines
+2. Continue simplifying remaining handlers
+3. Target: reduce App.tsx from 2,332 to < 500 lines

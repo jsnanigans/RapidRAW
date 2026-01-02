@@ -1,4 +1,4 @@
-import { Cubit } from '@blac/core';
+import { Cubit, blac } from '@blac/core';
 import debounce from 'lodash.debounce';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
@@ -99,6 +99,7 @@ const defaultState: EditorState = {
   libraryActiveAdjustments: INITIAL_ADJUSTMENTS,
 };
 
+@blac({ keepAlive: true })
 export class EditorCubit extends Cubit<EditorState> {
   private debouncedSaveMetadata: ReturnType<typeof debounce>;
   private debouncedSetHistory: ReturnType<typeof debounce>;

@@ -1,4 +1,4 @@
-import { Cubit } from '@blac/core';
+import { Cubit, blac, borrow } from '@blac/core';
 import { invoke } from '@tauri-apps/api/core';
 import { BrushSettings, Invokes } from '../components/ui/AppProperties';
 import { AiPatch, MaskContainer, INITIAL_MASK_ADJUSTMENTS, Coord } from '../utils/adjustments';
@@ -34,6 +34,7 @@ const defaultState: MasksState = {
   isMaskControlHovered: false,
 };
 
+@blac({ keepAlive: true })
 export class MasksCubit extends Cubit<MasksState> {
   constructor() {
     super(defaultState);
@@ -137,14 +138,13 @@ export class MasksCubit extends Cubit<MasksState> {
     this.emit(defaultState);
   };
 
-  // AI Mask Generation - requires EditorCubit for image context
-  // EditorCubit is passed as parameter since static access methods may not be available
+  // AI Mask Generation - uses borrow() for EditorCubit access
   generateAiMask = async (
     subMaskId: string,
     startPoint: Coord,
     endPoint: Coord,
-    editorCubit: EditorCubit,
   ) => {
+    const editorCubit = borrow(EditorCubit);
     const { selectedImage, adjustments } = editorCubit.state;
     if (!selectedImage?.path) {
       console.error('Cannot generate AI mask: No image selected.');
@@ -177,7 +177,8 @@ export class MasksCubit extends Cubit<MasksState> {
     }
   };
 
-  generateAiForegroundMask = async (subMaskId: string, editorCubit: EditorCubit) => {
+  generateAiForegroundMask = async (subMaskId: string) => {
+    const editorCubit = borrow(EditorCubit);
     const { selectedImage, adjustments } = editorCubit.state;
     if (!selectedImage?.path) {
       console.error('Cannot generate AI mask: No image selected.');
@@ -207,7 +208,8 @@ export class MasksCubit extends Cubit<MasksState> {
     }
   };
 
-  generateAiSkyMask = async (subMaskId: string, editorCubit: EditorCubit) => {
+  generateAiSkyMask = async (subMaskId: string) => {
+    const editorCubit = borrow(EditorCubit);
     const { selectedImage, adjustments } = editorCubit.state;
     if (!selectedImage?.path) {
       console.error('Cannot generate AI mask: No image selected.');

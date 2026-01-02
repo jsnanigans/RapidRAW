@@ -1,9 +1,11 @@
-import { Cubit, blac } from '@blac/core';
+import { Cubit, blac, borrow } from '@blac/core';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { Invokes } from '../components/ui/AppProperties';
 import { Adjustments, AiPatch, Coord } from '../utils/adjustments';
 import { SubMask } from '../components/panel/right/Masks';
+import { EditorCubit } from './EditorCubit';
+import { MasksCubit } from './MasksCubit';
 
 export interface ComfyUIState {
   isConnected: boolean;
@@ -86,13 +88,9 @@ export class ComfyUICubit extends Cubit<ComfyUIState> {
     patchId: string,
     prompt: string,
     useFastInpaint: boolean,
-    editorCubit: {
-      state: { selectedImage: { path: string } | null; adjustments: Adjustments };
-      setAdjustments: (fn: (prev: Adjustments) => Adjustments) => void;
-      setError: (error: string | null) => void;
-    },
-    masksCubit: { clearActiveAiPatch: () => void }
   ) => {
+    const editorCubit = borrow(EditorCubit);
+    const masksCubit = borrow(MasksCubit);
     const { selectedImage, adjustments } = editorCubit.state;
     if (!selectedImage?.path || this.state.isGenerating) {
       return;
@@ -152,13 +150,9 @@ export class ComfyUICubit extends Cubit<ComfyUIState> {
     subMaskId: string | null,
     startPoint: Coord,
     endPoint: Coord,
-    editorCubit: {
-      state: { selectedImage: { path: string } | null; adjustments: Adjustments };
-      setAdjustments: (fn: (prev: Partial<Adjustments>) => Partial<Adjustments>) => void;
-      setError: (error: string | null) => void;
-    },
-    masksCubit: { clearActiveAiPatch: () => void }
   ) => {
+    const editorCubit = borrow(EditorCubit);
+    const masksCubit = borrow(MasksCubit);
     const { selectedImage, adjustments } = editorCubit.state;
     if (!selectedImage?.path || this.state.isGenerating) {
       return;

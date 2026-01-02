@@ -469,16 +469,16 @@ function App() {
 
   const handleGenerativeReplace = useCallback(
     async (patchId: string, prompt: string, useFastInpaint: boolean) => {
-      await comfyUICubit.generativeReplace(patchId, prompt, useFastInpaint, editorCubit, masksCubit);
+      await comfyUICubit.generativeReplace(patchId, prompt, useFastInpaint);
     },
-    [comfyUICubit, editorCubit, masksCubit],
+    [comfyUICubit],
   );
 
   const handleQuickErase = useCallback(
     async (subMaskId: string | null, startPoint: Coord, endPoint: Coord) => {
-      await comfyUICubit.quickErase(subMaskId, startPoint, endPoint, editorCubit, masksCubit);
+      await comfyUICubit.quickErase(subMaskId, startPoint, endPoint);
     },
-    [comfyUICubit, editorCubit, masksCubit],
+    [comfyUICubit],
   );
 
   const handleDeleteMaskContainer = useCallback(
@@ -504,17 +504,17 @@ function App() {
   // Delegate to EditorCubit
   const handleToggleAiPatchVisibility = editorCubit.toggleAiPatchVisibility;
 
-  // Delegate AI mask generation to MasksCubit (with editorCubit context)
+  // Delegate AI mask generation to MasksCubit (uses borrow(EditorCubit) internally)
   const handleGenerateAiMask = (subMaskId: string, startPoint: Coord, endPoint: Coord) => {
-    masksCubit.generateAiMask(subMaskId, startPoint, endPoint, editorCubit as unknown as EditorCubit);
+    masksCubit.generateAiMask(subMaskId, startPoint, endPoint);
   };
 
   const handleGenerateAiForegroundMask = (subMaskId: string) => {
-    masksCubit.generateAiForegroundMask(subMaskId, editorCubit as unknown as EditorCubit);
+    masksCubit.generateAiForegroundMask(subMaskId);
   };
 
   const handleGenerateAiSkyMask = (subMaskId: string) => {
-    masksCubit.generateAiSkyMask(subMaskId, editorCubit as unknown as EditorCubit);
+    masksCubit.generateAiSkyMask(subMaskId);
   };
 
   // Sorted/filtered image list from LibraryCubit

@@ -1070,12 +1070,6 @@ function App() {
       .sort((a, b) => a.tag.localeCompare(b.tag));
   }, [imageList]);
 
-  const handleTagsChanged = useCallback((changedPaths: string[], newTags: { tag: string; isUser: boolean }[]) => {
-    libraryCubit.updateTags(changedPaths, newTags);
-  }, [libraryCubit]);
-
-
-
   const handlePasteFiles = useCallback(
     async (mode = 'copy') => {
       if (copiedFilePaths.length === 0 || !currentFolderPath) {
@@ -1716,7 +1710,6 @@ function App() {
       handleTogglePinFolder,
       handleImportClick,
       handleSelectSubfolder,
-      handleTagsChanged,
       resetAdjustmentsHistory,
       undo,
       redo,

@@ -74,7 +74,6 @@ interface ContextMenuHandlers {
   handleTogglePinFolder: (path: string) => void;
   handleImportClick: (targetPath: string) => void;
   handleSelectSubfolder: (path: string | null, isNewRoot?: boolean) => Promise<void>;
-  handleTagsChanged: (paths: string[], tags: { tag: string; isUser: boolean }[]) => void;
   resetAdjustmentsHistory: (adjustments: Adjustments) => void;
   undo: () => void;
   redo: () => void;
@@ -130,7 +129,6 @@ export function useContextMenus(options: UseContextMenusOptions) {
     handleTogglePinFolder,
     handleImportClick,
     handleSelectSubfolder,
-    handleTagsChanged,
     resetAdjustmentsHistory,
     undo,
     redo,
@@ -218,7 +216,7 @@ export function useContextMenus(options: UseContextMenusOptions) {
             customProps: {
               paths: [selectedImage.path],
               initialTags: commonTags,
-              onTagsChanged: handleTagsChanged,
+              onTagsChanged: libraryCubit.updateTags,
               appSettings,
             },
           },
@@ -248,11 +246,11 @@ export function useContextMenus(options: UseContextMenusOptions) {
     handlePasteAdjustments,
     handleRate,
     handleSetColorLabel,
-    handleTagsChanged,
     resetAdjustmentsHistory,
     undo,
     redo,
     editorCubit,
+    libraryCubit,
     showContextMenu,
   ]);
 
@@ -559,7 +557,7 @@ export function useContextMenus(options: UseContextMenusOptions) {
             customProps: {
               paths: finalSelection,
               initialTags: commonTags,
-              onTagsChanged: handleTagsChanged,
+              onTagsChanged: libraryCubit.updateTags,
               appSettings,
             },
           },
@@ -595,7 +593,6 @@ export function useContextMenus(options: UseContextMenusOptions) {
     handleSetColorLabel,
     handleResetAdjustments,
     handleLibraryRefresh,
-    handleTagsChanged,
     resetAdjustmentsHistory,
     editorCubit,
     libraryCubit,

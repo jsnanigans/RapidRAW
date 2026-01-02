@@ -796,126 +796,17 @@ function App() {
 
   const handleSelectSubfolder = useCallback(
     async (path: string | null, isNewRoot = false) => {
-      await invoke('cancel_thumbnail_generation');
-      setIsViewLoading(true);
-      libraryCubit.clearSearch();
-      setLibraryScrollTop(0);
-      try {
-        navigationCubit.setCurrentFolderPath(path);
-        navigationCubit.setActiveView('library');
-
-        if (isNewRoot && path) {
-          navigationCubit.setExpandedFolders([path]);
-        } else if (path) {
-          // Expand parent folders to show the selected path
-          const newSet = new Set(expandedFolders);
-          const allRoots = [rootPath, ...pinnedFolders].filter(Boolean) as string[];
-          const relevantRoot = allRoots.find((r) => path.startsWith(r));
-
-          if (relevantRoot) {
-            const separator = path.includes('/') ? '/' : '\\';
-            const parentSeparatorIndex = path.lastIndexOf(separator);
-
-            if (parentSeparatorIndex > -1 && path.length > relevantRoot.length) {
-              let current = path.substring(0, parentSeparatorIndex);
-              while (current && current.length >= relevantRoot.length) {
-                newSet.add(current);
-                const nextParentIndex = current.lastIndexOf(separator);
-                if (nextParentIndex === -1 || current === relevantRoot) {
-                  break;
-                }
-                current = current.substring(0, nextParentIndex);
-              }
-            }
-            newSet.add(relevantRoot);
-          }
-          navigationCubit.setExpandedFolders(Array.from(newSet));
-        }
-
-        if (isNewRoot) {
-          if (path && !pinnedFolders.includes(path)) {
-            handleActiveTreeSectionChange('current');
-          }
-          navigationCubit.setIsTreeLoading(true);
-          handleSettingsChange({ ...appSettings, lastRootPath: path } as AppSettings);
-          try {
-            const treeData: FolderNode = await invoke(Invokes.GetFolderTree, { path });
-            navigationCubit.setFolderTree(treeData);
-          } catch (err) {
-            console.error('Failed to load folder tree:', err);
-            setError(`Failed to load folder tree: ${err}. Some sub-folders might be inaccessible.`);
-          } finally {
-            navigationCubit.setIsTreeLoading(false);
-          }
-        }
-
-        libraryCubit.clear();
-        setLibraryActivePath(null);
-        if (selectedImage) {
-          setSelectedImage(null);
-          setFinalPreviewUrl(null);
-          setUncroppedAdjustedPreviewUrl(null);
-          setHistogram(null);
-        }
-
-        const command =
-          libraryViewMode === LibraryViewMode.Recursive ? Invokes.ListImagesRecursive : Invokes.ListImagesInDir;
-
-        const files: ImageFile[] = await invoke(command, { path });
-        const exifSortKeys = ['date_taken', 'iso', 'shutter_speed', 'aperture', 'focal_length'];
-        const isExifSortActive = exifSortKeys.includes(sortCriteria.key);
-        const shouldReadExif = appSettings?.enableExifReading ?? false;
-
-        if (shouldReadExif && files.length > 0) {
-          const paths = files.map((f: ImageFile) => f.path);
-
-          if (isExifSortActive) {
-            const exifDataMap: Record<string, any> = await invoke(Invokes.ReadExifForPaths, { paths });
-            const finalImageList = files.map((image) => ({
-              ...image,
-              exif: exifDataMap[image.path] || image.exif || null,
-            }));
-            libraryCubit.setImageList(finalImageList);
-          } else {
-            libraryCubit.setImageList(files);
-            invoke(Invokes.ReadExifForPaths, { paths })
-              .then((exifDataMap: any) => {
-                libraryCubit.update((state) => ({
-                  ...state,
-                  imageList: state.imageList.map((image) => ({
-                    ...image,
-                    exif: exifDataMap[image.path] || image.exif || null,
-                  })),
-                }));
-              })
-              .catch((err) => {
-                console.error('Failed to read EXIF data in background:', err);
-              });
-          }
-        } else {
-          libraryCubit.setImageList(files);
-        }
-
-        invoke(Invokes.StartBackgroundIndexing, { folderPath: path }).catch((err) => {
-          console.error('Failed to start background indexing:', err);
-        });
-      } catch (err) {
-        console.error('Failed to load folder contents:', err);
-        setError('Failed to load images from the selected folder.');
-        navigationCubit.setIsTreeLoading(false);
-      } finally {
-        setIsViewLoading(false);
-      }
+      await navigationCubit.selectSubfolder(path, isNewRoot, {
+        libraryCubit,
+        editorCubit,
+        settingsCubit,
+        uiCubit,
+        setIsViewLoading,
+        setError,
+        handleActiveTreeSectionChange,
+      });
     },
-    [
-      appSettings,
-      handleSettingsChange,
-      selectedImage,
-      rootPath,
-      sortCriteria.key,
-      pinnedFolders,
-      libraryViewMode,
-    ],
+    [navigationCubit, libraryCubit, editorCubit, settingsCubit, uiCubit, handleActiveTreeSectionChange],
   );
 
   const handleLibraryRefresh = useCallback(() => {

@@ -10,7 +10,7 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,236 | < 300 | 38% |
+| App.tsx lines | 3,625 | 2,127 | < 300 | 41% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 8 | 0-2 | 53% |
@@ -483,7 +483,22 @@ Added new methods to EditorCubit:
   - App.tsx reduced from 2,267 to 2,236 lines (~31 lines removed)
 - Total reduction: 3,625 -> 2,236 lines (~1,389 lines removed, ~38.3%)
 
+### Session 8 Updates
+- **Moved handleSelectSubfolder to NavigationCubit.selectSubfolder()**
+  - Added `selectSubfolder()` method to NavigationCubit (~150 lines)
+  - Method handles:
+    - Canceling thumbnail generation
+    - Setting view loading state
+    - Folder tree expansion logic
+    - Root path and folder tree loading
+    - Image list loading with EXIF support
+    - Background indexing
+  - App.tsx handler simplified to single method call delegation
+  - Updated useContextMenus.tsx type signature
+  - App.tsx reduced from 2,236 to 2,127 lines (~109 lines removed)
+- Total reduction: 3,625 -> 2,127 lines (~1,498 lines removed, ~41.3%)
+
 ### Next Steps
-1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)
-2. Simplify remaining handlers by inlining or extracting to cubits
-3. Target: reduce App.tsx from 2,236 to < 500 lines
+1. Simplify remaining handlers by inlining or extracting to cubits
+2. Target: reduce App.tsx from 2,127 to < 500 lines
+3. Move remaining large handlers (handleFullResolutionLogic, handleZoomChange)

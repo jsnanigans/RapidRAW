@@ -323,4 +323,163 @@ export class NavigationCubit extends Cubit<NavigationState> {
     currentFolderPath: this.state.currentFolderPath,
     expandedFolders: Array.from(this.state.expandedFolders),
   });
+
+  // Select a subfolder and load its images
+  selectSubfolder = async (
+    path: string | null,
+    isNewRoot: boolean,
+    options: {
+      libraryCubit: {
+        clearSearch: () => void;
+        clear: () => void;
+        setImageList: (images: any[]) => void;
+        update: (fn: (state: any) => any) => void;
+        state: { sortCriteria: { key: string } };
+      };
+      editorCubit: {
+        state: { selectedImage: any };
+        setSelectedImage: (img: any) => void;
+        setFinalPreviewUrl: (url: string | null) => void;
+        setUncroppedAdjustedPreviewUrl: (url: string | null) => void;
+        setHistogram: (histogram: any) => void;
+        setLibraryActivePath: (path: string | null) => void;
+      };
+      settingsCubit: {
+        state: { appSettings: any };
+        updateAppSettings: (updates: any) => void;
+      };
+      uiCubit: {
+        setLibraryScrollTop: (scrollTop: number) => void;
+      };
+      setIsViewLoading: (loading: boolean) => void;
+      setError: (error: string | null) => void;
+      handleActiveTreeSectionChange: (section: string) => void;
+    }
+  ): Promise<void> => {
+    const {
+      libraryCubit,
+      editorCubit,
+      settingsCubit,
+      uiCubit,
+      setIsViewLoading,
+      setError,
+      handleActiveTreeSectionChange,
+    } = options;
+
+    await invoke('cancel_thumbnail_generation');
+    setIsViewLoading(true);
+    libraryCubit.clearSearch();
+    uiCubit.setLibraryScrollTop(0);
+
+    try {
+      this.setCurrentFolderPath(path);
+      this.setActiveView('library');
+
+      if (isNewRoot && path) {
+        this.setExpandedFolders([path]);
+      } else if (path) {
+        // Expand parent folders to show the selected path
+        const newSet = new Set(this.state.expandedFolders);
+        const allRoots = [this.state.rootPath, ...this.state.pinnedFolders].filter(Boolean) as string[];
+        const relevantRoot = allRoots.find((r) => path.startsWith(r));
+
+        if (relevantRoot) {
+          const separator = path.includes('/') ? '/' : '\\';
+          const parentSeparatorIndex = path.lastIndexOf(separator);
+
+          if (parentSeparatorIndex > -1 && path.length > relevantRoot.length) {
+            let current = path.substring(0, parentSeparatorIndex);
+            while (current && current.length >= relevantRoot.length) {
+              newSet.add(current);
+              const nextParentIndex = current.lastIndexOf(separator);
+              if (nextParentIndex === -1 || current === relevantRoot) {
+                break;
+              }
+              current = current.substring(0, nextParentIndex);
+            }
+          }
+          newSet.add(relevantRoot);
+        }
+        this.setExpandedFolders(Array.from(newSet));
+      }
+
+      const appSettings = settingsCubit.state.appSettings;
+
+      if (isNewRoot) {
+        if (path && !this.state.pinnedFolders.includes(path)) {
+          handleActiveTreeSectionChange('current');
+        }
+        this.setIsTreeLoading(true);
+        settingsCubit.updateAppSettings({ lastRootPath: path });
+        try {
+          const treeData: FolderNode = await invoke(Invokes.GetFolderTree, { path });
+          this.setFolderTree(treeData);
+        } catch (err) {
+          console.error('Failed to load folder tree:', err);
+          setError(`Failed to load folder tree: ${err}. Some sub-folders might be inaccessible.`);
+        } finally {
+          this.setIsTreeLoading(false);
+        }
+      }
+
+      libraryCubit.clear();
+      editorCubit.setLibraryActivePath(null);
+      if (editorCubit.state.selectedImage) {
+        editorCubit.setSelectedImage(null);
+        editorCubit.setFinalPreviewUrl(null);
+        editorCubit.setUncroppedAdjustedPreviewUrl(null);
+        editorCubit.setHistogram(null);
+      }
+
+      const command =
+        this.state.libraryViewMode === LibraryViewMode.Recursive
+          ? Invokes.ListImagesRecursive
+          : Invokes.ListImagesInDir;
+
+      const files: any[] = await invoke(command, { path });
+      const exifSortKeys = ['date_taken', 'iso', 'shutter_speed', 'aperture', 'focal_length'];
+      const isExifSortActive = exifSortKeys.includes(libraryCubit.state.sortCriteria.key);
+      const shouldReadExif = appSettings?.enableExifReading ?? false;
+
+      if (shouldReadExif && files.length > 0) {
+        const paths = files.map((f: any) => f.path);
+
+        if (isExifSortActive) {
+          const exifDataMap: Record<string, any> = await invoke(Invokes.ReadExifForPaths, { paths });
+          const finalImageList = files.map((image) => ({
+            ...image,
+            exif: exifDataMap[image.path] || image.exif || null,
+          }));
+          libraryCubit.setImageList(finalImageList);
+        } else {
+          libraryCubit.setImageList(files);
+          invoke(Invokes.ReadExifForPaths, { paths })
+            .then((exifDataMap: any) => {
+              libraryCubit.update((state: any) => ({
+                ...state,
+                imageList: state.imageList.map((image: any) => ({
+                  ...image,
+                  exif: exifDataMap[image.path] || image.exif || null,
+                })),
+              }));
+            })
+            .catch((err) => {
+              console.error('Failed to read EXIF data in background:', err);
+            });
+        }
+      } else {
+        libraryCubit.setImageList(files);
+      }
+
+      invoke(Invokes.StartBackgroundIndexing, { folderPath: path }).catch((err) => {
+        console.error('Failed to start background indexing:', err);
+      });
+    } catch (err) {
+      console.error('Failed to load folder contents:', err);
+      setError('Failed to load images from the selected folder.');
+      this.setIsTreeLoading(false);
+    } finally {
+      setIsViewLoading(false);
+    }
+  };
 }

@@ -74,7 +74,7 @@ interface ContextMenuHandlers {
   handleLibraryRefresh: () => void;
   handleTogglePinFolder: (path: string) => void;
   handleImportClick: (targetPath: string) => void;
-  handleSelectSubfolder: (path: string) => Promise<void>;
+  handleSelectSubfolder: (path: string | null, isNewRoot?: boolean) => Promise<void>;
   handleTagsChanged: (paths: string[], tags: { tag: string; isUser: boolean }[]) => void;
   resetAdjustmentsHistory: (adjustments: Adjustments) => void;
   undo: () => void;

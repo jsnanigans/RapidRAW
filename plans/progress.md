@@ -10,7 +10,7 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,602 | < 300 | 28% |
+| App.tsx lines | 3,625 | 2,598 | < 300 | 28% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 17 | 0-2 | 0% |
@@ -434,6 +434,12 @@ Added new methods to EditorCubit:
 
 ### Files Created (Session 6 continued)
 - `src/components/layout/LeftPanelContainer.tsx` - Left panel container (~35 lines)
+
+### Additional Cleanup (Session 6)
+- Removed unused state: `folderActionTarget`
+- Removed unused destructures: `clipboardCopiedAdjustments`, `uiIsAnimatingTheme`, `uiIsWindowFullScreen`
+- App.tsx now at 2,598 lines
+- Total reduction: 3,625 -> 2,598 lines (~1,027 lines removed, ~28.3%)
 
 ### Next Steps
 1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)

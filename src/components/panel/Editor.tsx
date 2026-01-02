@@ -19,7 +19,6 @@ import { Invokes, Panel, TransformState, WaveformData } from '../ui/AppPropertie
 
 interface EditorProps {
   onContextMenu(event: any): void;
-  onGenerateAiMask(subMaskId: string, startPoint: Coord, endPoint: Coord): void;
   onQuickErase(subMaskId: string | null, startPoint: Coord, endpoint: Coord): void;
   onZoomed(state: TransformState): void;
   transformWrapperRef: any;
@@ -28,7 +27,6 @@ interface EditorProps {
 
 export default function Editor({
   onContextMenu,
-  onGenerateAiMask,
   onQuickErase,
   onZoomed,
   transformWrapperRef,
@@ -519,7 +517,7 @@ export default function Editor({
                 isCropping={isCropping}
                 isMasking={isMasking}
                 maskOverlayUrl={maskOverlayUrl}
-                onGenerateAiMask={onGenerateAiMask}
+                onGenerateAiMask={masksCubit.generateAiMask}
                 onQuickErase={onQuickErase}
                 onStraighten={(val: number) => editorCubit.applyStraighten(val)}
                 setCrop={handleCropChange}

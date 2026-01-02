@@ -504,11 +504,6 @@ function App() {
   // Delegate to EditorCubit
   const handleToggleAiPatchVisibility = editorCubit.toggleAiPatchVisibility;
 
-  // Delegate AI mask generation to MasksCubit (uses borrow(EditorCubit) internally)
-  const handleGenerateAiMask = (subMaskId: string, startPoint: Coord, endPoint: Coord) => {
-    masksCubit.generateAiMask(subMaskId, startPoint, endPoint);
-  };
-
   // Sorted/filtered image list from LibraryCubit
   const sortedImageList = libraryCubit.sortedImageList;
 
@@ -1777,7 +1772,6 @@ function App() {
           <div className="flex-1 flex flex-col min-w-0">
             <Editor
               onContextMenu={handleEditorContextMenu}
-              onGenerateAiMask={handleGenerateAiMask}
               onQuickErase={handleQuickErase}
               onZoomed={handleUserTransform}
               transformWrapperRef={transformWrapperRef}

@@ -512,6 +512,100 @@ export class LibraryCubit extends Cubit<LibraryState> {
     this.patch({ imageRatings: ratings });
   };
 
+  setColorLabel = async (
+    color: string | null,
+    editorCubit: {
+      state: { selectedImage: { path: string } | null; libraryActivePath: string | null };
+      setError: (error: string | null) => void;
+    },
+    paths?: string[]
+  ) => {
+    const { selectedImage, libraryActivePath } = editorCubit.state;
+    const { multiSelectedPaths, imageList } = this.state;
+
+    const pathsToUpdate = paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
+    if (pathsToUpdate.length === 0) {
+      return;
+    }
+
+    const primaryPath = selectedImage?.path || libraryActivePath;
+    const primaryImage = imageList.find((img: ImageFile) => img.path === primaryPath);
+    let currentColor: string | null = null;
+    if (primaryImage && primaryImage.tags) {
+      const colorTag = primaryImage.tags.find((tag: string) => tag.startsWith('color:'));
+      if (colorTag) {
+        currentColor = colorTag.substring(6);
+      }
+    }
+    const finalColor = color !== null && color === currentColor ? null : color;
+
+    try {
+      await invoke(Invokes.SetColorLabelForPaths, { paths: pathsToUpdate, color: finalColor });
+
+      this.update((state) => ({
+        ...state,
+        imageList: state.imageList.map((image: ImageFile) => {
+          if (pathsToUpdate.includes(image.path)) {
+            const otherTags = (image.tags || []).filter((tag: string) => !tag.startsWith('color:'));
+            const newTags = finalColor ? [...otherTags, `color:${finalColor}`] : otherTags;
+            return { ...image, tags: newTags };
+          }
+          return image;
+        }),
+      }));
+    } catch (err) {
+      console.error('Failed to set color label:', err);
+      editorCubit.setError(`Failed to set color label: ${err}`);
+    }
+  };
+
+  rateImages = async (
+    newRating: number,
+    editorCubit: { 
+      state: { selectedImage: { path: string } | null; adjustments: { rating: number }; libraryActivePath: string | null; libraryActiveAdjustments: { rating: number } };
+      setAdjustments: (fn: (prev: any) => any) => void;
+      setLibraryActiveAdjustments: (fn: (prev: any) => any) => void;
+      setError: (error: string | null) => void;
+    },
+    paths?: string[]
+  ) => {
+    const { selectedImage, adjustments, libraryActivePath, libraryActiveAdjustments } = editorCubit.state;
+    const { multiSelectedPaths } = this.state;
+    
+    const pathsToRate = paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
+    if (pathsToRate.length === 0) {
+      return;
+    }
+
+    let currentRating = 0;
+    if (selectedImage && pathsToRate.includes(selectedImage.path)) {
+      currentRating = adjustments.rating;
+    } else if (libraryActivePath && pathsToRate.includes(libraryActivePath)) {
+      currentRating = libraryActiveAdjustments.rating;
+    }
+
+    const finalRating = newRating === currentRating ? 0 : newRating;
+
+    pathsToRate.forEach((path: string) => {
+      this.setImageRating(path, finalRating);
+    });
+
+    if (selectedImage && pathsToRate.includes(selectedImage.path)) {
+      editorCubit.setAdjustments((prev: any) => ({ ...prev, rating: finalRating }));
+    }
+
+    if (libraryActivePath && pathsToRate.includes(libraryActivePath)) {
+      editorCubit.setLibraryActiveAdjustments((prev: any) => ({ ...prev, rating: finalRating }));
+    }
+
+    try {
+      await invoke(Invokes.ApplyAdjustmentsToPaths, { paths: pathsToRate, adjustments: { rating: finalRating } });
+    } catch (err) {
+      console.error('Failed to apply rating to paths:', err);
+      editorCubit.setError(`Failed to apply rating: ${err}`);
+    }
+  };
+
   // Scroll position
   setScrollTop = (scrollTop: number) => {
     this.patch({ scrollTop });

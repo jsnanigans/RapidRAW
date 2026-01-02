@@ -1414,87 +1414,16 @@ function App() {
 
   const handleRate = useCallback(
     (newRating: number, paths?: Array<string>) => {
-      const pathsToRate =
-        paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
-      if (pathsToRate.length === 0) {
-        return;
-      }
-
-      let currentRating = 0;
-      if (selectedImage && pathsToRate.includes(selectedImage.path)) {
-        currentRating = adjustments.rating;
-      } else if (libraryActivePath && pathsToRate.includes(libraryActivePath)) {
-        currentRating = libraryActiveAdjustments.rating;
-      }
-
-      const finalRating = newRating === currentRating ? 0 : newRating;
-
-      pathsToRate.forEach((path: string) => {
-        libraryCubit.setImageRating(path, finalRating);
-      });
-
-      if (selectedImage && pathsToRate.includes(selectedImage.path)) {
-        setAdjustments((prev: Adjustments) => ({ ...prev, rating: finalRating }));
-      }
-
-      if (libraryActivePath && pathsToRate.includes(libraryActivePath)) {
-        setLibraryActiveAdjustments((prev) => ({ ...prev, rating: finalRating }));
-      }
-
-      invoke(Invokes.ApplyAdjustmentsToPaths, { paths: pathsToRate, adjustments: { rating: finalRating } }).catch(
-        (err) => {
-          console.error('Failed to apply rating to paths:', err);
-          setError(`Failed to apply rating: ${err}`);
-        },
-      );
+      libraryCubit.rateImages(newRating, editorCubit, paths);
     },
-    [
-      multiSelectedPaths,
-      selectedImage,
-      libraryActivePath,
-      adjustments.rating,
-      libraryActiveAdjustments.rating,
-      setAdjustments,
-    ],
+    [libraryCubit, editorCubit],
   );
 
   const handleSetColorLabel = useCallback(
-    async (color: string | null, paths?: Array<string>) => {
-      const pathsToUpdate =
-        paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
-      if (pathsToUpdate.length === 0) {
-        return;
-      }
-      const primaryPath = selectedImage?.path || libraryActivePath;
-      const primaryImage = imageList.find((img: ImageFile) => img.path === primaryPath);
-      let currentColor = null;
-      if (primaryImage && primaryImage.tags) {
-        const colorTag = primaryImage.tags.find((tag: string) => tag.startsWith('color:'));
-        if (colorTag) {
-          currentColor = colorTag.substring(6);
-        }
-      }
-      const finalColor = color !== null && color === currentColor ? null : color;
-      try {
-        await invoke(Invokes.SetColorLabelForPaths, { paths: pathsToUpdate, color: finalColor });
-
-        libraryCubit.update((state) => ({
-          ...state,
-          imageList: state.imageList.map((image: ImageFile) => {
-            if (pathsToUpdate.includes(image.path)) {
-              const otherTags = (image.tags || []).filter((tag: string) => !tag.startsWith('color:'));
-              const newTags = finalColor ? [...otherTags, `color:${finalColor}`] : otherTags;
-              return { ...image, tags: newTags };
-            }
-            return image;
-          }),
-        }));
-      } catch (err) {
-        console.error('Failed to set color label:', err);
-        setError(`Failed to set color label: ${err}`);
-      }
+    (color: string | null, paths?: Array<string>) => {
+      libraryCubit.setColorLabel(color, editorCubit, paths);
     },
-    [multiSelectedPaths, selectedImage, libraryActivePath, imageList],
+    [libraryCubit, editorCubit],
   );
 
   const getCommonTags = useCallback((paths: string[]): { tag: string; isUser: boolean }[] => {

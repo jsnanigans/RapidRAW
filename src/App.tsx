@@ -1410,47 +1410,31 @@ function App() {
     }
   };
 
-  const handleContinueSession = () => {
-    const restore = async () => {
-      if (!appSettings?.lastRootPath) {
-        return;
-      }
-
-      const root = appSettings.lastRootPath;
-      const folderState = appSettings.lastFolderState;
-      const pathToSelect = folderState?.currentFolderPath || root;
-
-      navigationCubit.setRootPathSimple(root);
-
-      if (folderState?.expandedFolders) {
-        const newExpandedFolders = [...folderState.expandedFolders, root];
-        navigationCubit.setExpandedFolders(newExpandedFolders);
-      } else {
-        navigationCubit.setExpandedFolders([root]);
-      }
-
-      navigationCubit.setIsTreeLoading(true);
-      try {
-        const treeData: FolderNode = await invoke(Invokes.GetFolderTree, { path: root });
-        navigationCubit.setFolderTree(treeData);
-      } catch (err) {
-        console.error('Failed to restore folder tree:', err);
-      } finally {
-        navigationCubit.setIsTreeLoading(false);
-      }
-
-      await handleSelectSubfolder(pathToSelect, false);
-    };
-    restore().catch((err) => {
-      console.error('Failed to restore session, folder might be missing:', err);
-      setError('Failed to restore session. The last used folder may have been moved or deleted.');
-      if (appSettings) {
-        handleSettingsChange({ ...appSettings, lastRootPath: null, lastFolderState: null });
-      }
-      handleGoHome();
-      navigationCubit.setIsTreeLoading(false);
+  const handleGoHome = useCallback(() => {
+    navigationCubit.goHome({
+      libraryCubit,
+      editorCubit,
+      uiCubit,
     });
-  };
+  }, [navigationCubit, libraryCubit, editorCubit, uiCubit]);
+
+  const handleContinueSession = useCallback(() => {
+    navigationCubit.continueSession({
+      appSettings,
+      selectSubfolderOptions: {
+        libraryCubit,
+        editorCubit,
+        settingsCubit,
+        uiCubit,
+        setIsViewLoading,
+        setError,
+        handleActiveTreeSectionChange,
+      },
+      onError: setError,
+      onSettingsChange: handleSettingsChange,
+      goHomeCallback: handleGoHome,
+    });
+  }, [navigationCubit, appSettings, libraryCubit, editorCubit, settingsCubit, uiCubit, handleSettingsChange, handleGoHome]);
 
   useEffect(() => {
     if (!initialFileToOpen || !appSettings) {
@@ -1471,13 +1455,6 @@ function App() {
       setInitialFileToOpen(null);
     }
   }, [initialFileToOpen, appSettings, currentFolderPath, imageList, isViewLoading, handleSelectSubfolder, handleImageSelect, navigationCubit]);
-
-  const handleGoHome = () => {
-    navigationCubit.clearRootPath();
-    libraryCubit.clear();
-    setLibraryActivePath(null);
-    setIsLibraryExportPanelVisible(false);
-  };
 
   const handleMultiSelectClick = (path: string, event: any, options: MultiSelectOptions) => {
     const { ctrlKey, metaKey, shiftKey } = event;

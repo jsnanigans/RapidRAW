@@ -482,4 +482,66 @@ export class NavigationCubit extends Cubit<NavigationState> {
       setIsViewLoading(false);
     }
   };
+
+  // Go back to home (clear root path and state)
+  goHome = (options: {
+    libraryCubit: { clear: () => void };
+    editorCubit: { setLibraryActivePath: (path: string | null) => void };
+    uiCubit: { setIsLibraryExportPanelVisible: (visible: boolean) => void };
+  }) => {
+    this.clearRootPath();
+    options.libraryCubit.clear();
+    options.editorCubit.setLibraryActivePath(null);
+    options.uiCubit.setIsLibraryExportPanelVisible(false);
+  };
+
+  // Continue previous session
+  continueSession = async (options: {
+    appSettings: any;
+    selectSubfolderOptions: any;
+    onError: (error: string) => void;
+    onSettingsChange: (settings: any) => void;
+    goHomeCallback: () => void;
+  }): Promise<void> => {
+    const { appSettings, selectSubfolderOptions, onError, onSettingsChange, goHomeCallback } = options;
+
+    if (!appSettings?.lastRootPath) {
+      return;
+    }
+
+    const root = appSettings.lastRootPath;
+    const folderState = appSettings.lastFolderState;
+    const pathToSelect = folderState?.currentFolderPath || root;
+
+    this.setRootPathSimple(root);
+
+    if (folderState?.expandedFolders) {
+      const newExpandedFolders = [...folderState.expandedFolders, root];
+      this.setExpandedFolders(newExpandedFolders);
+    } else {
+      this.setExpandedFolders([root]);
+    }
+
+    this.setIsTreeLoading(true);
+    try {
+      const treeData: FolderNode = await invoke(Invokes.GetFolderTree, { path: root });
+      this.setFolderTree(treeData);
+    } catch (err) {
+      console.error('Failed to restore folder tree:', err);
+    } finally {
+      this.setIsTreeLoading(false);
+    }
+
+    try {
+      await this.selectSubfolder(pathToSelect, false, selectSubfolderOptions);
+    } catch (err) {
+      console.error('Failed to restore session, folder might be missing:', err);
+      onError('Failed to restore session. The last used folder may have been moved or deleted.');
+      if (appSettings) {
+        onSettingsChange({ ...appSettings, lastRootPath: null, lastFolderState: null });
+      }
+      goHomeCallback();
+      this.setIsTreeLoading(false);
+    }
+  };
 }

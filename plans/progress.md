@@ -10,7 +10,7 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,332 | < 300 | 36% |
+| App.tsx lines | 3,625 | 2,267 | < 300 | 37% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 8 | 0-2 | 53% |
@@ -473,9 +473,13 @@ Added new methods to EditorCubit:
   - Added `generativeReplace()` method to ComfyUICubit
   - Added `quickErase()` method to ComfyUICubit
   - App.tsx reduced from 2,468 to 2,332 lines (~136 lines removed)
-- Total reduction: 3,625 -> 2,332 lines (~1,293 lines removed, ~35.7%)
+- **Moved executeDelete to LibraryCubit**
+  - Added `deleteFiles()` method to LibraryCubit
+  - Handles file deletion with next image selection logic
+  - App.tsx reduced from 2,332 to 2,267 lines (~65 lines removed)
+- Total reduction: 3,625 -> 2,267 lines (~1,358 lines removed, ~37.5%)
 
 ### Next Steps
 1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)
-2. Continue simplifying remaining handlers
-3. Target: reduce App.tsx from 2,332 to < 500 lines
+2. Simplify remaining handlers by inlining or extracting to cubits
+3. Target: reduce App.tsx from 2,267 to < 500 lines

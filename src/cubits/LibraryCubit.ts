@@ -624,6 +624,93 @@ export class LibraryCubit extends Cubit<LibraryState> {
     }));
   };
 
+  deleteFiles = async (
+    pathsToDelete: string[],
+    options: { includeAssociated: boolean },
+    editorCubit: {
+      state: { selectedImage: { path: string } | null; libraryActivePath: string | null };
+      setError: (error: string | null) => void;
+      setLibraryActivePath: (path: string | null) => void;
+    },
+    callbacks: {
+      refreshImageList: () => Promise<void>;
+      handleImageSelect: (path: string) => void;
+      handleBackToLibrary: () => void;
+    }
+  ) => {
+    if (!pathsToDelete || pathsToDelete.length === 0) {
+      return;
+    }
+
+    const { selectedImage, libraryActivePath } = editorCubit.state;
+    const activePath = selectedImage ? selectedImage.path : libraryActivePath;
+    let nextImagePath: string | null = null;
+
+    if (activePath) {
+      const physicalPath = activePath.split('?vc=')[0];
+      const isActiveImageDeleted = pathsToDelete.some(
+        (p) => p === activePath || p === physicalPath,
+      );
+
+      if (isActiveImageDeleted) {
+        const currentIndex = this.sortedImageList.findIndex((img) => img.path === activePath);
+        if (currentIndex !== -1) {
+          const nextCandidate = this.sortedImageList
+            .slice(currentIndex + 1)
+            .find((img) => !pathsToDelete.includes(img.path));
+
+          if (nextCandidate) {
+            nextImagePath = nextCandidate.path;
+          } else {
+            const prevCandidate = this.sortedImageList
+              .slice(0, currentIndex)
+              .reverse()
+              .find((img) => !pathsToDelete.includes(img.path));
+            
+            if (prevCandidate) {
+              nextImagePath = prevCandidate.path;
+            }
+          }
+        }
+      } else {
+        nextImagePath = activePath;
+      }
+    }
+
+    try {
+      const command = options.includeAssociated ? 'delete_files_with_associated' : 'delete_files_from_disk';
+      await invoke(command, { paths: pathsToDelete });
+
+      await callbacks.refreshImageList();
+
+      if (selectedImage) {
+        const physicalPath = selectedImage.path.split('?vc=')[0];
+        const isFileBeingEditedDeleted = pathsToDelete.some(
+          (p) => p === selectedImage.path || p === physicalPath,
+        );
+
+        if (isFileBeingEditedDeleted) {
+          if (nextImagePath) {
+            callbacks.handleImageSelect(nextImagePath);
+          } else {
+            callbacks.handleBackToLibrary();
+          }
+        }
+      } else {
+        if (nextImagePath) {
+          this.setSelection([nextImagePath]);
+          editorCubit.setLibraryActivePath(nextImagePath);
+        } else {
+          this.clearSelection();
+          editorCubit.setLibraryActivePath(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete files:', err);
+      editorCubit.setError(`Failed to delete files: ${err}`);
+    }
+  };
+
   // Update image in list (after metadata change)
   updateImage = (path: string, updates: Partial<ImageFile>) => {
     this.update((state) => ({

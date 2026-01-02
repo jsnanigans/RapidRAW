@@ -721,6 +721,21 @@ export class LibraryCubit extends Cubit<LibraryState> {
     }));
   };
 
+  updateTags = (changedPaths: string[], newTags: { tag: string; isUser: boolean }[]) => {
+    this.update((state) => ({
+      ...state,
+      imageList: state.imageList.map((image) => {
+        if (changedPaths.includes(image.path)) {
+          const colorTags = (image.tags || []).filter((t: string) => t.startsWith('color:'));
+          const prefixedNewTags = newTags.map((t) => (t.isUser ? `user:${t.tag}` : t.tag));
+          const finalTags = [...colorTags, ...prefixedNewTags].sort();
+          return { ...image, tags: finalTags.length > 0 ? finalTags : null };
+        }
+        return image;
+      }),
+    }));
+  };
+
   // Clear all state
   clear = () => {
     this.emit({

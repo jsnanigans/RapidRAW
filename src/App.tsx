@@ -1219,18 +1219,7 @@ function App() {
   }, [imageList]);
 
   const handleTagsChanged = useCallback((changedPaths: string[], newTags: { tag: string; isUser: boolean }[]) => {
-    libraryCubit.update((state) => ({
-      ...state,
-      imageList: state.imageList.map((image) => {
-        if (changedPaths.includes(image.path)) {
-          const colorTags = (image.tags || []).filter((t: string) => t.startsWith('color:'));
-          const prefixedNewTags = newTags.map((t) => (t.isUser ? `user:${t.tag}` : t.tag));
-          const finalTags = [...colorTags, ...prefixedNewTags].sort();
-          return { ...image, tags: finalTags.length > 0 ? finalTags : null };
-        }
-        return image;
-      }),
-    }));
+    libraryCubit.updateTags(changedPaths, newTags);
   }, [libraryCubit]);
 
 
@@ -1919,29 +1908,9 @@ function App() {
 
   const handleResetAdjustments = useCallback(
     (paths?: Array<string>) => {
-      const pathsToReset = paths || multiSelectedPaths;
-      if (pathsToReset.length === 0) {
-        return;
-      }
-
-      editorCubit.cancelPendingHistoryUpdate();
-
-      invoke(Invokes.ResetAdjustmentsForPaths, { paths: pathsToReset })
-        .then(() => {
-          if (libraryActivePath && pathsToReset.includes(libraryActivePath)) {
-            setLibraryActiveAdjustments((prev: Adjustments) => ({ ...INITIAL_ADJUSTMENTS, rating: prev.rating }));
-          }
-          if (selectedImage && pathsToReset.includes(selectedImage.path)) {
-            const currentRating = adjustments.rating;
-            resetAdjustmentsHistory({ ...INITIAL_ADJUSTMENTS, rating: currentRating, aiPatches: [] });
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to reset adjustments:', err);
-          setError(`Failed to reset adjustments: ${err}`);
-        });
+      editorCubit.resetAdjustmentsForPaths(paths || [], libraryCubit);
     },
-    [multiSelectedPaths, libraryActivePath, selectedImage, adjustments.rating, resetAdjustmentsHistory, editorCubit],
+    [editorCubit, libraryCubit],
   );
 
   const handleImportClick = useCallback(

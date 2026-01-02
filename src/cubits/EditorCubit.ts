@@ -716,6 +716,35 @@ export class EditorCubit extends Cubit<EditorState> {
     }));
   };
 
+  resetAdjustmentsForPaths = async (
+    paths: string[],
+    libraryCubit: { state: { multiSelectedPaths: string[] } }
+  ) => {
+    const pathsToReset = paths.length > 0 ? paths : libraryCubit.state.multiSelectedPaths;
+    if (pathsToReset.length === 0) {
+      return;
+    }
+
+    this.cancelPendingHistoryUpdate();
+
+    try {
+      await invoke(Invokes.ResetAdjustmentsForPaths, { paths: pathsToReset });
+      
+      if (this.state.libraryActivePath && pathsToReset.includes(this.state.libraryActivePath)) {
+        const currentRating = this.state.libraryActiveAdjustments.rating;
+        this.setLibraryActiveAdjustments({ ...INITIAL_ADJUSTMENTS, rating: currentRating });
+      }
+      
+      if (this.state.selectedImage && pathsToReset.includes(this.state.selectedImage.path)) {
+        const currentRating = this.state.adjustments.rating;
+        this.resetHistory({ ...INITIAL_ADJUSTMENTS, rating: currentRating, aiPatches: [] });
+      }
+    } catch (err) {
+      console.error('Failed to reset adjustments:', err);
+      this.setError(`Failed to reset adjustments: ${err}`);
+    }
+  };
+
   // Back to library handler
   backToLibrary = () => {
     const lastActivePath = this.state.selectedImage?.path ?? null;

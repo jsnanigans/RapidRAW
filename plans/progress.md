@@ -10,7 +10,7 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,614 | < 300 | 28% |
+| App.tsx lines | 3,625 | 2,602 | < 300 | 28% |
 | Editor.tsx props | 18 | 18 | 0-2 | 0% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 17 | 0-2 | 0% |
@@ -195,10 +195,10 @@ Current issue: MasksCubit receives EditorCubit as a method parameter instead of 
 - [ ] Export and use in App.tsx
 
 ### 3.2 LeftPanel
-- [ ] Create `src/components/layout/LeftPanel.tsx`
-- [ ] Combine FolderTree with resize handle
-- [ ] Use NavigationCubit directly
-- [ ] Remove props, use cubits
+- [x] Create `src/components/layout/LeftPanelContainer.tsx`
+- [x] Combine FolderTree with resize handle
+- [x] Use NavigationCubit, UICubit, SettingsCubit directly
+- [x] Removed leftPanelWidth destructure from App.tsx
 
 ### 3.3 RightPanelContainer
 - [x] Create `src/components/layout/RightPanelContainer.tsx`
@@ -424,9 +424,20 @@ Added new methods to EditorCubit:
 - `src/cubits/ClipboardCubit.ts` - Made showCopiedFeedback public
 - `src/App.tsx` - Removed context menu handlers, cleaned up imports
 
+### Session 6 Updates (continued)
+- **Created LeftPanelContainer component** (`src/components/layout/LeftPanelContainer.tsx`)
+  - Encapsulates FolderTree + Resizer
+  - Uses NavigationCubit, UICubit, SettingsCubit directly
+  - Removed 12 lines from App.tsx (2,614 -> 2,602)
+- Fixed useContextMenus hook type signature for `handleFolderTreeContextMenu` (path: string | null)
+- Removed unused `leftPanelWidth` destructure from App.tsx
+
+### Files Created (Session 6 continued)
+- `src/components/layout/LeftPanelContainer.tsx` - Left panel container (~35 lines)
+
 ### Next Steps
 1. Move `handleSelectSubfolder` to NavigationCubit (~120 lines)
 2. Move `handleImageSelect` to EditorCubit (~50 lines)
-3. Create LeftPanelContainer component to encapsulate FolderTree + resize
+3. Consolidate copiedAdjustments (exists in both EditorCubit and ClipboardCubit)
 4. Continue simplifying remaining handlers
-5. Target: reduce App.tsx from 2,614 to < 500 lines
+5. Target: reduce App.tsx from 2,602 to < 500 lines

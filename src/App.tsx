@@ -26,7 +26,7 @@ import {
 import TitleBar from './window/TitleBar';
 import CommunityPage from './components/panel/CommunityPage';
 import MainLibrary from './components/panel/MainLibrary';
-import FolderTree from './components/panel/FolderTree';
+import LeftPanelContainer from './components/layout/LeftPanelContainer';
 import Editor from './components/panel/Editor';
 import { useThumbnails } from './hooks/useThumbnails';
 import { ImageDimensions } from './hooks/useImageRenderSize';
@@ -304,7 +304,6 @@ function App() {
 
   // UI state from UICubit - single source of truth
   const {
-    leftPanelWidth,
     rightPanelWidth,
     bottomPanelHeight,
     isResizing,
@@ -2533,18 +2532,7 @@ function App() {
           </div>
         )}
         <div className="flex flex-row flex-grow h-full min-h-0">
-          {rootPath && (
-            <>
-              <FolderTree
-                onContextMenu={handleFolderTreeContextMenu}
-                style={{ width: uiVisibility.folderTree ? `${leftPanelWidth}px` : '32px' }}
-              />
-              <Resizer
-                direction={Orientation.Vertical}
-                onMouseDown={createResizeHandler('left', leftPanelWidth)}
-              />
-            </>
-          )}
+          <LeftPanelContainer onContextMenu={handleFolderTreeContextMenu} />
           <div className="flex-1 flex flex-col min-w-0">{renderContent()}</div>
           {!selectedImage && isLibraryExportPanelVisible && (
             <Resizer

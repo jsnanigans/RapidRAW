@@ -608,7 +608,7 @@ export function useContextMenus(options: UseContextMenusOptions) {
     showContextMenu,
   ]);
 
-  const handleFolderTreeContextMenu = useCallback((event: React.MouseEvent, path: string, isCurrentlyPinned?: boolean) => {
+  const handleFolderTreeContextMenu = useCallback((event: React.MouseEvent, path: string | null, isCurrentlyPinned?: boolean) => {
     event.preventDefault();
     event.stopPropagation();
     const targetPath = path || rootPath;

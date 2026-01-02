@@ -574,20 +574,6 @@ function App() {
     };
   }, []);
 
-  const handleRightPanelSelect = useCallback(
-    (panelId: Panel) => {
-      if (panelId === activeRightPanel) {
-        setActiveRightPanel(null);
-      } else {
-        setActiveRightPanel(panelId);
-        setRenderedRightPanel(panelId);
-      }
-      masksCubit.setActiveMask(null);
-      masksCubit.setActiveAiSubMask(null);
-    },
-    [activeRightPanel, masksCubit],
-  );
-
   const handleSettingsChange = useCallback(
     (newSettings: AppSettings) => {
       if (!newSettings) {
@@ -686,11 +672,6 @@ function App() {
   }, [settingsState.isLoaded]);
 
   // NOTE: Removed uiVisibility sync useEffect - now derived from appSettings (SettingsCubit)
-
-  const handleToggleWaveform = useCallback(() => {
-    editorCubit.toggleWaveform();
-  }, [editorCubit]);
-
   // NOTE: Removed thumbnailSize and thumbnailAspectRatio sync useEffects - now derived from appSettings (SettingsCubit)
 
   useEffect(() => {
@@ -971,10 +952,6 @@ function App() {
     });
   }, [multiSelectedPaths, executeDelete, imageList, modalsCubit]);
 
-  const handleToggleFullScreen = useCallback(() => {
-    editorCubit.toggleFullScreen();
-  }, [editorCubit]);
-
   useEffect(() => {
     if (!isFullScreen || !selectedImage?.isReady) {
       return;
@@ -1238,9 +1215,7 @@ function App() {
     handlePasteAdjustments,
     handlePasteFiles,
     handleRate,
-    handleRightPanelSelect,
     handleSetColorLabel,
-    handleToggleFullScreen,
     handleZoomChange,
     setCopiedFilePaths,
     onSelectPatchContainer: masksCubit.setActiveAiPatchContainer,

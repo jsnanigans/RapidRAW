@@ -15,9 +15,7 @@ interface KeyboardShortcutsProps {
   handlePasteAdjustments(): void;
   handlePasteFiles(str: string): void;
   handleRate(rate: number): void;
-  handleRightPanelSelect(panel: Panel): void;
   handleSetColorLabel(label: string | null): void;
-  handleToggleFullScreen(): void;
   handleZoomChange(zoomValue: number, fitToWindow?: boolean): void;
   setCopiedFilePaths(paths: Array<string>): void;
   onSelectPatchContainer?(container: string | null): void;
@@ -35,9 +33,7 @@ export const useKeyboardShortcuts = ({
   handlePasteAdjustments,
   handlePasteFiles,
   handleRate,
-  handleRightPanelSelect,
   handleSetColorLabel,
-  handleToggleFullScreen,
   handleZoomChange,
   setCopiedFilePaths,
   onSelectPatchContainer,
@@ -86,6 +82,12 @@ export const useKeyboardShortcuts = ({
     modalsState.culling.isOpen ||
     modalsState.collage.isOpen;
 
+  const handleRightPanelSelect = (panel: Panel) => {
+    editorCubit.setActiveRightPanel(panel);
+    masksCubit.setActiveMask(null);
+    masksCubit.setActiveAiSubMask(null);
+  };
+
   useEffect(() => {
     const handleKeyDown = (event: any) => {
       if (isModalOpen) {
@@ -120,7 +122,7 @@ export const useKeyboardShortcuts = ({
           } else if (activeRightPanel === Panel.Crop) {
             handleRightPanelSelect(Panel.Adjustments);
           } else if (isFullScreen) {
-            handleToggleFullScreen();
+            editorCubit.toggleFullScreen();
           } else {
             handleBackToLibrary();
           }
@@ -172,7 +174,7 @@ export const useKeyboardShortcuts = ({
         }
         if (key === 'f' && !isCtrl) {
           event.preventDefault();
-          handleToggleFullScreen();
+          editorCubit.toggleFullScreen();
         }
         if (key === 'b' && !isCtrl) {
           event.preventDefault();
@@ -407,9 +409,7 @@ export const useKeyboardShortcuts = ({
     handlePasteAdjustments,
     handlePasteFiles,
     handleRate,
-    handleRightPanelSelect,
     handleSetColorLabel,
-    handleToggleFullScreen,
     handleZoomChange,
     isFullScreen,
     isModalOpen,

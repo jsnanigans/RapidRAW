@@ -509,14 +509,6 @@ function App() {
     masksCubit.generateAiMask(subMaskId, startPoint, endPoint);
   };
 
-  const handleGenerateAiForegroundMask = (subMaskId: string) => {
-    masksCubit.generateAiForegroundMask(subMaskId);
-  };
-
-  const handleGenerateAiSkyMask = (subMaskId: string) => {
-    masksCubit.generateAiSkyMask(subMaskId);
-  };
-
   // Sorted/filtered image list from LibraryCubit
   const sortedImageList = libraryCubit.sortedImageList;
 
@@ -1811,8 +1803,6 @@ function App() {
             direction={Orientation.Vertical}
           />
           <RightPanelContainer
-            onGenerateAiForegroundMask={handleGenerateAiForegroundMask}
-            onGenerateAiSkyMask={handleGenerateAiSkyMask}
             onDeletePatch={handleDeleteAiPatch}
             onGenerativeReplace={handleGenerativeReplace}
             onTogglePatchVisibility={handleToggleAiPatchVisibility}

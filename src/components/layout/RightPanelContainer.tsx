@@ -13,8 +13,6 @@ import MasksPanel from '../panel/right/MasksPanel';
 import RightPanelSwitcher from '../panel/right/RightPanelSwitcher';
 
 interface RightPanelContainerProps {
-  onGenerateAiForegroundMask: (subMaskId: string) => void;
-  onGenerateAiSkyMask: (subMaskId: string) => void;
   onDeletePatch: (patchId: string) => void;
   onGenerativeReplace: (patchId: string, prompt: string, useFastInpaint: boolean) => Promise<void>;
   onTogglePatchVisibility: (patchId: string) => void;
@@ -28,8 +26,6 @@ const panelVariants: any = {
 };
 
 export default function RightPanelContainer({
-  onGenerateAiForegroundMask,
-  onGenerateAiSkyMask,
   onDeletePatch,
   onGenerativeReplace,
   onTogglePatchVisibility,
@@ -75,8 +71,8 @@ export default function RightPanelContainer({
                 {renderedRightPanel === Panel.Crop && <CropPanel />}
                 {renderedRightPanel === Panel.Masks && (
                   <MasksPanel
-                    onGenerateAiForegroundMask={onGenerateAiForegroundMask}
-                    onGenerateAiSkyMask={onGenerateAiSkyMask}
+                    onGenerateAiForegroundMask={masksCubit.generateAiForegroundMask}
+                    onGenerateAiSkyMask={masksCubit.generateAiSkyMask}
                     setCustomEscapeHandler={setCustomEscapeHandler}
                   />
                 )}
@@ -85,7 +81,7 @@ export default function RightPanelContainer({
                 {renderedRightPanel === Panel.Ai && (
                   <AIPanel
                     onDeletePatch={onDeletePatch}
-                    onGenerateAiForegroundMask={onGenerateAiForegroundMask}
+                    onGenerateAiForegroundMask={masksCubit.generateAiForegroundMask}
                     onGenerativeReplace={onGenerativeReplace}
                     onTogglePatchVisibility={onTogglePatchVisibility}
                     setCustomEscapeHandler={setCustomEscapeHandler}

@@ -474,13 +474,6 @@ function App() {
     [comfyUICubit],
   );
 
-  const handleQuickErase = useCallback(
-    async (subMaskId: string | null, startPoint: Coord, endPoint: Coord) => {
-      await comfyUICubit.quickErase(subMaskId, startPoint, endPoint);
-    },
-    [comfyUICubit],
-  );
-
   const handleDeleteMaskContainer = useCallback(
     (containerId: string) => {
       editorCubit.deleteMaskContainer(containerId);
@@ -1772,7 +1765,6 @@ function App() {
           <div className="flex-1 flex flex-col min-w-0">
             <Editor
               onContextMenu={handleEditorContextMenu}
-              onQuickErase={handleQuickErase}
               onZoomed={handleUserTransform}
               transformWrapperRef={transformWrapperRef}
               onZoomChange={handleZoomChange}

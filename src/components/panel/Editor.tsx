@@ -9,7 +9,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useBloc } from '@blac/react';
 import { ImageDimensions, useImageRenderSize } from '../../hooks/useImageRenderSize';
 import { Adjustments, AiPatch, Coord, MaskContainer } from '../../utils/adjustments';
-import { EditorCubit, MasksCubit, LibraryCubit } from '../../cubits';
+import { EditorCubit, MasksCubit, LibraryCubit, ComfyUICubit } from '../../cubits';
 import FullScreenViewer from './editor/FullScreenViewer';
 import EditorToolbar from './editor/EditorToolbar';
 import ImageCanvas from './editor/ImageCanvas';
@@ -19,7 +19,6 @@ import { Invokes, Panel, TransformState, WaveformData } from '../ui/AppPropertie
 
 interface EditorProps {
   onContextMenu(event: any): void;
-  onQuickErase(subMaskId: string | null, startPoint: Coord, endpoint: Coord): void;
   onZoomed(state: TransformState): void;
   transformWrapperRef: any;
   onZoomChange?(zoom: number, fitToWindow?: boolean): void;
@@ -27,7 +26,6 @@ interface EditorProps {
 
 export default function Editor({
   onContextMenu,
-  onQuickErase,
   onZoomed,
   transformWrapperRef,
   onZoomChange,
@@ -36,6 +34,7 @@ export default function Editor({
   const [editorState, editorCubit] = useBloc(EditorCubit);
   const [masksState, masksCubit] = useBloc(MasksCubit);
   const [libraryState] = useBloc(LibraryCubit);
+  const [, comfyUICubit] = useBloc(ComfyUICubit);
 
   // Derived from cubits (previously props)
   const isLoading = editorState.isViewLoading;
@@ -518,7 +517,7 @@ export default function Editor({
                 isMasking={isMasking}
                 maskOverlayUrl={maskOverlayUrl}
                 onGenerateAiMask={masksCubit.generateAiMask}
-                onQuickErase={onQuickErase}
+                onQuickErase={comfyUICubit.quickErase}
                 onStraighten={(val: number) => editorCubit.applyStraighten(val)}
                 setCrop={handleCropChange}
                 setIsMaskHovered={setIsMaskHovered}

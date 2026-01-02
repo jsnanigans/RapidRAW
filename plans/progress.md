@@ -541,26 +541,38 @@ Added new methods to EditorCubit:
   - `handleToggleFullScreen` moved to useKeyboardShortcuts (uses editorCubit.toggleFullScreen())
   - `handleRightPanelSelect` moved to useKeyboardShortcuts (uses editorCubit + masksCubit)
   - `handleRenameFiles` moved to useContextMenus (uses modalsCubit.openRenameFile())
+  - `handleTagsChanged` moved to useContextMenus (uses libraryCubit.updateTags())
   - Removed unused `handleToggleWaveform` handler
-- App.tsx reduced from 2,023 to 1,960 lines (~63 lines removed)
-- Handler count reduced from 47 to 43
-- Total reduction: 3,625 -> 1,960 lines (~1,665 lines removed, ~45.9%)
+
+### Session 14 Updates
+- **Implemented BlaC `borrow()` pattern for inter-cubit communication**
+  - Added `@blac({ keepAlive: true })` decorator to EditorCubit and MasksCubit
+  - MasksCubit now uses `borrow(EditorCubit)` instead of receiving it as parameter
+  - ComfyUICubit now uses `borrow(EditorCubit)` and `borrow(MasksCubit)` instead of parameters
+  - Simplified AI mask and ComfyUI handler calls in App.tsx
+- **Moved mask generation to RightPanelContainer**
+  - RightPanelContainer now calls `masksCubit.generateAiForegroundMask/generateAiSkyMask` directly
+  - Removed `handleGenerateAiForegroundMask` and `handleGenerateAiSkyMask` from App.tsx
+  - Reduced RightPanelContainer props from 6 to 4
+- App.tsx reduced from 1,960 to 1,943 lines (~17 lines removed)
+- Handler count reduced from 43 to 41
+- Total reduction: 3,625 -> 1,943 lines (~1,682 lines removed, ~46.4%)
 
 ### Refactoring Summary
 
 **Completed:**
-- App.tsx reduced from 3,625 to 1,960 lines (45.9% reduction, 1,665 lines removed)
+- App.tsx reduced from 3,625 to 1,943 lines (46.4% reduction, 1,682 lines removed)
 - Created 5 new cubits: ExportImportCubit, UICubit, ComfyUICubit, ClipboardCubit, IndexingCubit
 - Extracted layout components: RightPanelContainer, LeftPanelContainer
 - Extracted context menus to useContextMenus hook
 - Major handler migrations to cubits: selectSubfolder, handleZoomChange, handleFullResolutionLogic, goHome, continueSession, etc.
-- Component prop reduction: Editor (16→6), MainLibrary (18→8), BottomBar uses cubits
+- Component prop reduction: Editor (16→6), MainLibrary (18→8), RightPanelContainer (6→4), BottomBar uses cubits
 - Keyboard shortcuts hook now uses cubits directly for toggleFullScreen, rightPanelSelect
+- Inter-cubit communication using BlaC `borrow()` pattern (EditorCubit, MasksCubit, ComfyUICubit)
 
 **Remaining for future work:**
-- Further handler consolidation (43 handlers still in App.tsx)
+- Further handler consolidation (41 handlers still in App.tsx)
 - ImageCanvas prop reduction (12 props currently)
-- Inter-cubit communication using .get() pattern
 - AppLayout component extraction
 - Target of <300 lines is unrealistic without major architectural changes
 

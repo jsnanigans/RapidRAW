@@ -9,7 +9,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useBloc } from '@blac/react';
 import { ImageDimensions, useImageRenderSize } from '../../hooks/useImageRenderSize';
 import { Adjustments, AiPatch, Coord, MaskContainer } from '../../utils/adjustments';
-import { EditorCubit, MasksCubit } from '../../cubits';
+import { EditorCubit, MasksCubit, LibraryCubit } from '../../cubits';
 import FullScreenViewer from './editor/FullScreenViewer';
 import EditorToolbar from './editor/EditorToolbar';
 import ImageCanvas from './editor/ImageCanvas';
@@ -18,45 +18,31 @@ import { Mask, SubMask } from './right/Masks';
 import { Invokes, Panel, TransformState, WaveformData } from '../ui/AppProperties';
 
 interface EditorProps {
-  isLoading: boolean;
-  onBackToLibrary(): void;
   onContextMenu(event: any): void;
   onGenerateAiMask(subMaskId: string, startPoint: Coord, endPoint: Coord): void;
   onQuickErase(subMaskId: string | null, startPoint: Coord, endpoint: Coord): void;
-  onStraighten(val: number): void;
-  onToggleFullScreen(): void;
   onZoomed(state: TransformState): void;
-  targetZoom: number;
-  thumbnails: Record<string, string>;
   transformWrapperRef: any;
-  updateSubMask(id: string | null, subMask: Partial<SubMask>): void;
-  onDisplaySizeChange?(size: any): void;
-  onInitialFitScale?(scale: number): void;
   onZoomChange?(zoom: number, fitToWindow?: boolean): void;
-  onWbPicked?: () => void;
 }
 
 export default function Editor({
-  isLoading,
-  onBackToLibrary,
   onContextMenu,
   onGenerateAiMask,
   onQuickErase,
-  onStraighten,
-  onToggleFullScreen,
   onZoomed,
-  targetZoom,
-  thumbnails,
   transformWrapperRef,
-  updateSubMask,
-  onDisplaySizeChange,
-  onInitialFitScale,
   onZoomChange,
-  onWbPicked,
 }: EditorProps) {
   // Get state from cubits - single source of truth
   const [editorState, editorCubit] = useBloc(EditorCubit);
   const [masksState, masksCubit] = useBloc(MasksCubit);
+  const [libraryState] = useBloc(LibraryCubit);
+
+  // Derived from cubits (previously props)
+  const isLoading = editorState.isViewLoading;
+  const targetZoom = editorState.zoom;
+  const { thumbnails } = libraryState;
 
   // Destructure editor state
   const {
@@ -221,21 +207,21 @@ export default function Editor({
   }, [selectedImage, imageRenderSize.scale, originalSize]);
 
   useEffect(() => {
-    if (onDisplaySizeChange && imageRenderSize.width > 0) {
+    if (imageRenderSize.width > 0) {
       const currentDisplaySize = {
         width: imageRenderSize.width * transformState.scale,
         height: imageRenderSize.height * transformState.scale,
         scale: transformState.scale,
       };
-      onDisplaySizeChange(currentDisplaySize);
+      editorCubit.setDisplaySize(currentDisplaySize);
     }
-  }, [imageRenderSize, transformState.scale, onDisplaySizeChange]);
+  }, [imageRenderSize, transformState.scale, editorCubit]);
 
   useEffect(() => {
-    if (onInitialFitScale && imageRenderSize.scale > 0) {
-      onInitialFitScale(imageRenderSize.scale);
+    if (imageRenderSize.scale > 0) {
+      editorCubit.setInitialFitScale(imageRenderSize.scale);
     }
-  }, [imageRenderSize.scale, onInitialFitScale]);
+  }, [imageRenderSize.scale, editorCubit]);
 
   const debouncedGenerateMaskOverlay = useCallback(
     debounce(async (maskDef, renderSize) => {
@@ -468,7 +454,7 @@ export default function Editor({
     <>
       <FullScreenViewer
         isOpen={isFullScreen}
-        onClose={onToggleFullScreen}
+        onClose={() => editorCubit.toggleFullScreen()}
         onTransformChange={setTransformState}
         thumbnailUrl={thumbnails[selectedImage.path] || selectedImage.thumbnailUrl}
         transformState={transformState}
@@ -481,8 +467,12 @@ export default function Editor({
         </AnimatePresence>
         <EditorToolbar
           isLoading={isLoading}
-          onBackToLibrary={onBackToLibrary}
-          onToggleFullScreen={onToggleFullScreen}
+          onBackToLibrary={() => {
+            masksCubit.clearActiveMask();
+            masksCubit.clearActiveAiPatch();
+            editorCubit.backToLibrary();
+          }}
+          onToggleFullScreen={() => editorCubit.toggleFullScreen()}
         />
 
         <div
@@ -531,11 +521,10 @@ export default function Editor({
                 maskOverlayUrl={maskOverlayUrl}
                 onGenerateAiMask={onGenerateAiMask}
                 onQuickErase={onQuickErase}
-                onStraighten={onStraighten}
+                onStraighten={(val: number) => editorCubit.applyStraighten(val)}
                 setCrop={handleCropChange}
                 setIsMaskHovered={setIsMaskHovered}
-                updateSubMask={updateSubMask}
-                onWbPicked={onWbPicked}
+                updateSubMask={(id: string | null, data: Partial<SubMask>) => editorCubit.updateSubMask(id || '', data)}
               />
             </TransformComponent>
           </TransformWrapper>

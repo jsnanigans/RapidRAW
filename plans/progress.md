@@ -10,8 +10,8 @@ See [app-refactor.md](./app-refactor.md) for full updated plan.
 
 | Metric | Original | Current | Target | Progress |
 |--------|----------|---------|--------|----------|
-| App.tsx lines | 3,625 | 2,051 | < 300 | 43% |
-| Editor.tsx props | 18 | 18 | 0-2 | 0% |
+| App.tsx lines | 3,625 | 2,033 | < 300 | 44% |
+| Editor.tsx props | 18 | 6 | 0-2 | 67% |
 | MainLibrary.tsx props | 17 | 17 | 0-2 | 0% |
 | BottomBar.tsx props | 17 | 8 | 0-2 | 53% |
 | Context menu lines | ~600 | 0 (extracted) | 0 | 100% |
@@ -207,9 +207,10 @@ Current issue: MasksCubit receives EditorCubit as a method parameter instead of 
 - [x] Use EditorCubit for active panel
 
 ### 3.4 Update Editor.tsx
-- [ ] Remove unnecessary props
-- [ ] Use EditorCubit directly
-- [ ] Use MasksCubit directly
+- [x] Remove unnecessary props (16 → 6)
+- [x] Use EditorCubit directly
+- [x] Use MasksCubit directly
+- [x] Use LibraryCubit for thumbnails
 
 ### 3.5 Update MainLibrary.tsx
 - [ ] Remove unnecessary props
@@ -508,7 +509,17 @@ Added new methods to EditorCubit:
   - App.tsx reduced from 2,127 to 2,051 lines (~76 lines removed)
 - Total reduction: 3,625 -> 2,051 lines (~1,574 lines removed, ~43.4%)
 
+### Session 10 Updates
+- **Refactored Editor.tsx to use cubits directly**
+  - Reduced props from 16 to 6 (eliminated 10 props)
+  - Removed: isLoading, onBackToLibrary, onStraighten, onToggleFullScreen, targetZoom, thumbnails, updateSubMask, onDisplaySizeChange, onInitialFitScale, onWbPicked
+  - Now uses EditorCubit, MasksCubit, LibraryCubit directly
+  - Simplified handleToggleFullScreen to delegate to editorCubit.toggleFullScreen()
+  - Removed unused handlers from App.tsx: handleDisplaySizeChange, handleStraighten, handleWbPicked, updateSubMask
+  - App.tsx reduced from 2,051 to 2,033 lines (~18 lines removed)
+- Total reduction: 3,625 -> 2,033 lines (~1,592 lines removed, ~43.9%)
+
 ### Next Steps
-1. Simplify remaining handlers by inlining or extracting to cubits
-2. Target: reduce App.tsx from 2,051 to < 500 lines
-3. Continue component prop elimination (Editor.tsx, MainLibrary.tsx)
+1. Continue component prop elimination (MainLibrary.tsx - 17 props)
+2. Simplify remaining handlers by inlining or extracting to cubits
+3. Target: reduce App.tsx from 2,033 to < 500 lines

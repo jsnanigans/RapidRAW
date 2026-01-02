@@ -276,7 +276,7 @@ function App() {
   const updateSelectedImage = editorCubit.updateSelectedImage;
 
   // Delegate to EditorCubit
-  const handleDisplaySizeChange = editorCubit.setDisplaySize;
+
 
   const [initialFileToOpen, setInitialFileToOpen] = useState<string | null>(null);
   // uiVisibility is derived from appSettings (SettingsCubit is single source of truth)
@@ -391,10 +391,10 @@ function App() {
   const setAdjustments = editorCubit.setAdjustments;
 
   // Delegate to EditorCubit.applyStraighten
-  const handleStraighten = editorCubit.applyStraighten;
+
 
   // No-op callback for white balance picker (keeps picker active after use)
-  const handleWbPicked = () => {};
+
 
   useEffect(() => {
     if (
@@ -465,7 +465,7 @@ function App() {
   // Note: ComfyUI status polling is handled by ComfyUICubit (in constructor)
 
   // Delegate to EditorCubit
-  const updateSubMask = editorCubit.updateSubMask;
+
 
   const handleGenerativeReplace = useCallback(
     async (patchId: string, prompt: string, useFastInpaint: boolean) => {
@@ -980,16 +980,8 @@ function App() {
   }, [multiSelectedPaths, executeDelete, imageList, modalsCubit]);
 
   const handleToggleFullScreen = useCallback(() => {
-    if (isFullScreen) {
-      setIsFullScreen(false);
-      setFullScreenUrl(null);
-    } else {
-      if (!selectedImage) {
-        return;
-      }
-      setIsFullScreen(true);
-    }
-  }, [isFullScreen, selectedImage]);
+    editorCubit.toggleFullScreen();
+  }, [editorCubit]);
 
   useEffect(() => {
     if (!isFullScreen || !selectedImage?.isReady) {
@@ -1862,22 +1854,12 @@ function App() {
         <div className="flex flex-row flex-grow h-full min-h-0">
           <div className="flex-1 flex flex-col min-w-0">
             <Editor
-              isLoading={isViewLoading}
-              onBackToLibrary={handleBackToLibrary}
               onContextMenu={handleEditorContextMenu}
               onGenerateAiMask={handleGenerateAiMask}
               onQuickErase={handleQuickErase}
-              onStraighten={handleStraighten}
-              onToggleFullScreen={handleToggleFullScreen}
               onZoomed={handleUserTransform}
-              targetZoom={zoom}
-              thumbnails={thumbnails}
               transformWrapperRef={transformWrapperRef}
-              updateSubMask={updateSubMask}
-              onDisplaySizeChange={handleDisplaySizeChange}
-              onInitialFitScale={setInitialFitScale}
               onZoomChange={handleZoomChange}
-              onWbPicked={handleWbPicked}
             />
             <Resizer
               direction={Orientation.Horizontal}

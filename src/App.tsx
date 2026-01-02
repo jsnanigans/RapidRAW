@@ -309,8 +309,6 @@ function App() {
     isResizing,
     isLibraryExportPanelVisible,
     libraryScrollTop,
-    isAnimatingTheme: uiIsAnimatingTheme,
-    isWindowFullScreen: uiIsWindowFullScreen,
   } = uiState;
 
   // Export/Import state from ExportImportCubit - single source of truth
@@ -319,7 +317,6 @@ function App() {
   // Clipboard state from ClipboardCubit - single source of truth
   const {
     copiedFilePaths,
-    copiedAdjustments: clipboardCopiedAdjustments,
     isCopied,
     isPasted,
   } = clipboardState;
@@ -375,7 +372,6 @@ function App() {
 
   const setIsGeneratingAi = comfyUICubit.setIsGenerating;
 
-  const [folderActionTarget, setFolderActionTarget] = useState<string | null>(null);
   const [customEscapeHandler, setCustomEscapeHandler] = useState(null);
   const { loading: isThumbnailsLoading } = useThumbnails(imageList, (updater: any) => {
     if (typeof updater === 'function') {

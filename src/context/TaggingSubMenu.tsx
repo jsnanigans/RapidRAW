@@ -3,11 +3,12 @@ import { invoke } from '@tauri-apps/api/core';
 import { X, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Invokes } from '../components/ui/AppProperties';
+import { useBlocActions } from '@blac/react';
+import { LibraryCubit } from '../cubits';
 
 interface TaggingSubMenuProps {
   paths: string[];
   initialTags: { tag: string; isUser: boolean }[];
-  onTagsChanged: (paths: string[], newTags: { tag: string; isUser: boolean }[]) => void;
   appSettings: any;
   hideContextMenu: () => void;
 }
@@ -19,16 +20,11 @@ const tagVariants = {
   exit: { opacity: 0, scale: 0.8, transition: { duration: 0.15 } },
 };
 
-export default function TaggingSubMenu({
-  paths,
-  initialTags,
-  onTagsChanged,
-  appSettings,
-  hideContextMenu,
-}: TaggingSubMenuProps) {
+export default function TaggingSubMenu({ paths, initialTags, appSettings, hideContextMenu }: TaggingSubMenuProps) {
   const [tags, setTags] = useState<{ tag: string; isUser: boolean }[]>(initialTags);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const libraryCubit = useBlocActions(LibraryCubit);
 
   useEffect(() => {
     setTags(initialTags);
@@ -46,7 +42,7 @@ export default function TaggingSubMenu({
         await invoke(Invokes.AddTagForPaths, { paths, tag: prefixedTag });
         const newTags = [...tags, { tag: newTagValue, isUser: true }].sort((a, b) => a.tag.localeCompare(b.tag));
         setTags(newTags);
-        onTagsChanged(paths, newTags);
+        libraryCubit.updateTags(paths, newTags);
         setInputValue('');
       } catch (err) {
         console.error(`Failed to add tag: ${err}`);
@@ -60,7 +56,7 @@ export default function TaggingSubMenu({
       await invoke(Invokes.RemoveTagForPaths, { paths, tag: prefixedTag });
       const newTags = tags.filter((t) => t.tag !== tagToRemove.tag);
       setTags(newTags);
-      onTagsChanged(paths, newTags);
+      libraryCubit.updateTags(paths, newTags);
     } catch (err) {
       console.error(`Failed to remove tag: ${err}`);
     }
@@ -156,3 +152,4 @@ export default function TaggingSubMenu({
     </div>
   );
 }
+

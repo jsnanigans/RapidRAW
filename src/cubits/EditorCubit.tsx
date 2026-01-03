@@ -1,11 +1,16 @@
-import { Cubit, blac } from '@blac/core';
+import { Cubit, blac, ensure } from '@blac/core';
 import debounce from 'lodash.debounce';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
-import { Invokes, SelectedImage, Panel, WaveformData } from '../components/ui/AppProperties';
-import { Adjustments, INITIAL_ADJUSTMENTS } from '../utils/adjustments';
+import { Invokes, SelectedImage, Panel, WaveformData, OPTION_SEPARATOR } from '../components/ui/AppProperties';
+import { Adjustments, Color, COLOR_LABELS, INITIAL_ADJUSTMENTS } from '../utils/adjustments';
 import { ImageDimensions } from '../hooks/useImageRenderSize';
 import { ChannelConfig } from '../components/adjustments/Curves';
+import { LibraryCubit } from './LibraryCubit';
+import { Save, Undo, Redo, Copy, ClipboardPaste, Aperture, Star, Palette, Tag, RotateCcw } from 'lucide-react';
+import TaggingSubMenu from '../context/TaggingSubMenu';
+import { ClipboardCubit } from './ClipboardCubit';
+import ContextMenuCubit, { ContextMenuOption } from './ContextMenuCubit';
 
 export interface CollapsibleSectionsState {
   basic: boolean;
@@ -144,7 +149,7 @@ export class EditorCubit extends Cubit<EditorState> {
   };
 
   disposeEventListeners = () => {
-    this.unlistenFns.forEach(fn => fn());
+    this.unlistenFns.forEach((fn) => fn());
     this.unlistenFns = [];
     this.listenersSetup = false;
   };
@@ -223,7 +228,7 @@ export class EditorCubit extends Cubit<EditorState> {
     path: string,
     thumbnailUrl: string | undefined,
     masksCubit: { clearActiveMask: () => void; clearActiveAiPatch: () => void },
-    libraryCubit: { setSelection: (paths: string[]) => void }
+    libraryCubit: { setSelection: (paths: string[]) => void },
   ) => {
     if (this.state.selectedImage?.path === path) {
       return false;
@@ -285,9 +290,7 @@ export class EditorCubit extends Cubit<EditorState> {
   setAdjustments = (updates: Partial<Adjustments> | ((prev: Adjustments) => Adjustments)) => {
     this.update((state) => {
       const currentAdj = state.adjustments;
-      const newAdjustments = typeof updates === 'function'
-        ? updates(currentAdj)
-        : { ...currentAdj, ...updates };
+      const newAdjustments = typeof updates === 'function' ? updates(currentAdj) : { ...currentAdj, ...updates };
 
       return {
         ...state,
@@ -580,9 +583,8 @@ export class EditorCubit extends Cubit<EditorState> {
 
   setLibraryActiveAdjustments = (adjustments: Adjustments | ((prev: Adjustments) => Adjustments)) => {
     this.update((state) => {
-      const newAdjustments = typeof adjustments === 'function'
-        ? adjustments(state.libraryActiveAdjustments)
-        : adjustments;
+      const newAdjustments =
+        typeof adjustments === 'function' ? adjustments(state.libraryActiveAdjustments) : adjustments;
       return { ...state, libraryActiveAdjustments: newAdjustments };
     });
   };
@@ -626,7 +628,7 @@ export class EditorCubit extends Cubit<EditorState> {
   // Auto adjustments
   applyAutoAdjustments = async () => {
     if (!this.state.selectedImage) return;
-    
+
     try {
       const autoAdjustments: Adjustments = await invoke(Invokes.CalculateAutoAdjustments);
       this.setAdjustments((prev: Adjustments) => {
@@ -693,9 +695,7 @@ export class EditorCubit extends Cubit<EditorState> {
   toggleAiPatchVisibility = (patchId: string) => {
     this.setAdjustments((prev: Adjustments) => ({
       ...prev,
-      aiPatches: (prev.aiPatches || []).map((p: any) => 
-        p.id === patchId ? { ...p, visible: !p.visible } : p
-      ),
+      aiPatches: (prev.aiPatches || []).map((p: any) => (p.id === patchId ? { ...p, visible: !p.visible } : p)),
     }));
   };
 
@@ -704,23 +704,16 @@ export class EditorCubit extends Cubit<EditorState> {
       ...prev,
       masks: prev.masks.map((c: any) => ({
         ...c,
-        subMasks: c.subMasks.map((sm: any) => 
-          sm.id === subMaskId ? { ...sm, ...updatedData } : sm
-        ),
+        subMasks: c.subMasks.map((sm: any) => (sm.id === subMaskId ? { ...sm, ...updatedData } : sm)),
       })),
       aiPatches: (prev.aiPatches || []).map((p: any) => ({
         ...p,
-        subMasks: p.subMasks.map((sm: any) => 
-          sm.id === subMaskId ? { ...sm, ...updatedData } : sm
-        ),
+        subMasks: p.subMasks.map((sm: any) => (sm.id === subMaskId ? { ...sm, ...updatedData } : sm)),
       })),
     }));
   };
 
-  resetAdjustmentsForPaths = async (
-    paths: string[],
-    libraryCubit: { state: { multiSelectedPaths: string[] } }
-  ) => {
+  resetAdjustmentsForPaths = async (paths: string[], libraryCubit: { state: { multiSelectedPaths: string[] } }) => {
     const pathsToReset = paths.length > 0 ? paths : libraryCubit.state.multiSelectedPaths;
     if (pathsToReset.length === 0) {
       return;
@@ -730,12 +723,12 @@ export class EditorCubit extends Cubit<EditorState> {
 
     try {
       await invoke(Invokes.ResetAdjustmentsForPaths, { paths: pathsToReset });
-      
+
       if (this.state.libraryActivePath && pathsToReset.includes(this.state.libraryActivePath)) {
         const currentRating = this.state.libraryActiveAdjustments.rating;
         this.setLibraryActiveAdjustments({ ...INITIAL_ADJUSTMENTS, rating: currentRating });
       }
-      
+
       if (this.state.selectedImage && pathsToReset.includes(this.state.selectedImage.path)) {
         const currentRating = this.state.adjustments.rating;
         this.resetHistory({ ...INITIAL_ADJUSTMENTS, rating: currentRating, aiPatches: [] });
@@ -756,9 +749,16 @@ export class EditorCubit extends Cubit<EditorState> {
       visualAdjustmentsKey: string;
       requestFullResolution: (adjustments: Adjustments, key: string) => void;
       cancelFullResRequest: () => void;
-    }
+    },
   ) => {
-    const { enableZoomHifi, fullResolutionUrl, fullResCacheKey, visualAdjustmentsKey, requestFullResolution, cancelFullResRequest } = options;
+    const {
+      enableZoomHifi,
+      fullResolutionUrl,
+      fullResCacheKey,
+      visualAdjustmentsKey,
+      requestFullResolution,
+      cancelFullResRequest,
+    } = options;
     const { initialFitScale, previewSize, originalSize, isFullResolution, isLoadingFullRes, adjustments } = this.state;
 
     if (!enableZoomHifi) {
@@ -803,7 +803,7 @@ export class EditorCubit extends Cubit<EditorState> {
     options: {
       setZoomCallback: (zoom: number) => void;
       handleFullResolutionLogicCallback: (targetZoomPercent: number, currentDisplayWidth: number) => void;
-    }
+    },
   ) => {
     const { originalSize, baseRenderSize, adjustments } = this.state;
     const orientationSteps = adjustments.orientationSteps || 0;
@@ -862,7 +862,7 @@ export class EditorCubit extends Cubit<EditorState> {
     transformScale: number,
     options: {
       handleFullResolutionLogicCallback: (targetZoomPercent: number, currentDisplayWidth: number) => void;
-    }
+    },
   ) => {
     const { originalSize, baseRenderSize, adjustments } = this.state;
 
@@ -913,5 +913,77 @@ export class EditorCubit extends Cubit<EditorState> {
       isWbPickerActive: false,
       libraryActivePath: lastActivePath,
     });
+  };
+
+  handleContextMenu = (event: MouseEvent) => {
+    const selectedImage = this.state.selectedImage;
+    if (!selectedImage) return;
+    const libraryCubit = ensure(LibraryCubit);
+    const clipboardCubit = ensure(ClipboardCubit);
+    const commonTags = libraryCubit.getCommonTags([selectedImage.path]);
+
+    const options: Array<ContextMenuOption> = [
+      {
+        label: 'Export Image',
+        icon: Save,
+        action: () => {
+          this.setRenderedRightPanel(Panel.Export);
+          this.setActiveRightPanel(Panel.Export);
+        },
+      },
+      { type: OPTION_SEPARATOR },
+      { label: 'Undo', icon: Undo, action: this.undo, disabled: !this.canUndo },
+      { label: 'Redo', icon: Redo, action: this.redo, disabled: !this.canRedo },
+      { type: OPTION_SEPARATOR },
+      { label: 'Copy Adjustments', icon: Copy, action: () => clipboardCubit.copyAdjustments(this.state.adjustments) },
+      {
+        label: 'Paste Adjustments',
+        icon: ClipboardPaste,
+        action: () =>
+          clipboardCubit.pasteAdjustments([selectedImage.path], this.state.adjustments, this.setAdjustments),
+        disabled: clipboardCubit.state.copiedAdjustments === null,
+      },
+      { type: OPTION_SEPARATOR },
+      { label: 'Auto Adjust Image', icon: Aperture, action: this.applyAutoAdjustments },
+      {
+        label: 'Rating',
+        icon: Star,
+        submenu: [0, 1, 2, 3, 4, 5].map((rating: number) => ({
+          label: rating === 0 ? 'No Rating' : `${rating} Star${rating !== 1 ? 's' : ''}`,
+          action: () => libraryCubit.rateImages(rating, [selectedImage.path]),
+        })),
+      },
+      {
+        label: 'Color Label',
+        icon: Palette,
+        submenu: [
+          { label: 'No Label', action: () => libraryCubit.setColorLabel(null) },
+          ...COLOR_LABELS.map((label: Color) => ({
+            label: label.name.charAt(0).toUpperCase() + label.name.slice(1),
+            color: label.color,
+            action: () => libraryCubit.setColorLabel(label.name),
+          })),
+        ],
+      },
+      {
+        label: 'Tagging',
+        icon: Tag,
+        submenu: [() => <TaggingSubMenu paths={[selectedImage.path]} initialTags={commonTags} />],
+      },
+      { type: OPTION_SEPARATOR },
+      {
+        label: 'Reset Adjustments',
+        icon: RotateCcw,
+        action: () => {
+          this.cancelPendingHistoryUpdate();
+          this.setAdjustmentsWithoutHistory({
+            ...INITIAL_ADJUSTMENTS,
+            rating: this.state.adjustments.rating,
+            aiPatches: [],
+          });
+        },
+      },
+    ];
+    ensure(ContextMenuCubit).showForEvent(event, options);
   };
 }

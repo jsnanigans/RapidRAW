@@ -1,4 +1,4 @@
-import { Cubit, blac } from '@blac/core';
+import { Cubit, blac, ensure } from '@blac/core';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import {
@@ -10,6 +10,7 @@ import {
   RawStatus,
   SupportedTypes,
 } from '../components/ui/AppProperties';
+import { EditorCubit } from './EditorCubit';
 
 export interface SearchCriteria {
   tags: string[];
@@ -113,14 +114,7 @@ export class LibraryCubit extends Cubit<LibraryState> {
   }
 
   get sortedImageList(): ImageFile[] {
-    const {
-      imageList,
-      filterCriteria,
-      sortCriteria,
-      searchCriteria,
-      imageRatings,
-      supportedTypes,
-    } = this.state;
+    const { imageList, filterCriteria, sortCriteria, searchCriteria, imageRatings, supportedTypes } = this.state;
 
     // Filter by rating, raw status, and color
     const filteredList = imageList.filter((image) => {
@@ -423,9 +417,7 @@ export class LibraryCubit extends Cubit<LibraryState> {
       ...state,
       sortCriteria: {
         ...state.sortCriteria,
-        order: state.sortCriteria.order === SortDirection.Ascending
-          ? SortDirection.Descening
-          : SortDirection.Ascending,
+        order: state.sortCriteria.order === SortDirection.Ascending ? SortDirection.Descening : SortDirection.Ascending,
       },
     }));
   };
@@ -512,18 +504,13 @@ export class LibraryCubit extends Cubit<LibraryState> {
     this.patch({ imageRatings: ratings });
   };
 
-  setColorLabel = async (
-    color: string | null,
-    editorCubit: {
-      state: { selectedImage: { path: string } | null; libraryActivePath: string | null };
-      setError: (error: string | null) => void;
-    },
-    paths?: string[]
-  ) => {
+  setColorLabel = async (color: string | null, paths?: string[]) => {
+    const editorCubit = ensure(EditorCubit);
     const { selectedImage, libraryActivePath } = editorCubit.state;
     const { multiSelectedPaths, imageList } = this.state;
 
-    const pathsToUpdate = paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
+    const pathsToUpdate =
+      paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
     if (pathsToUpdate.length === 0) {
       return;
     }
@@ -559,20 +546,13 @@ export class LibraryCubit extends Cubit<LibraryState> {
     }
   };
 
-  rateImages = async (
-    newRating: number,
-    editorCubit: { 
-      state: { selectedImage: { path: string } | null; adjustments: { rating: number }; libraryActivePath: string | null; libraryActiveAdjustments: { rating: number } };
-      setAdjustments: (fn: (prev: any) => any) => void;
-      setLibraryActiveAdjustments: (fn: (prev: any) => any) => void;
-      setError: (error: string | null) => void;
-    },
-    paths?: string[]
-  ) => {
+  rateImages = async (newRating: number, paths?: string[]) => {
+    const editorCubit = ensure(EditorCubit);
     const { selectedImage, adjustments, libraryActivePath, libraryActiveAdjustments } = editorCubit.state;
     const { multiSelectedPaths } = this.state;
-    
-    const pathsToRate = paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
+
+    const pathsToRate =
+      paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
     if (pathsToRate.length === 0) {
       return;
     }
@@ -618,29 +598,24 @@ export class LibraryCubit extends Cubit<LibraryState> {
       ...state,
       imageList: state.imageList.filter((img) => !pathSet.has(img.path)),
       multiSelectedPaths: state.multiSelectedPaths.filter((p) => !pathSet.has(p)),
-      libraryActivePath: state.libraryActivePath && pathSet.has(state.libraryActivePath)
-        ? null
-        : state.libraryActivePath,
+      libraryActivePath:
+        state.libraryActivePath && pathSet.has(state.libraryActivePath) ? null : state.libraryActivePath,
     }));
   };
 
   deleteFiles = async (
     pathsToDelete: string[],
     options: { includeAssociated: boolean },
-    editorCubit: {
-      state: { selectedImage: { path: string } | null; libraryActivePath: string | null };
-      setError: (error: string | null) => void;
-      setLibraryActivePath: (path: string | null) => void;
-    },
     callbacks: {
       refreshImageList: () => Promise<void>;
       handleImageSelect: (path: string) => void;
       handleBackToLibrary: () => void;
-    }
+    },
   ) => {
     if (!pathsToDelete || pathsToDelete.length === 0) {
       return;
     }
+    const editorCubit = ensure(EditorCubit);
 
     const { selectedImage, libraryActivePath } = editorCubit.state;
     const activePath = selectedImage ? selectedImage.path : libraryActivePath;
@@ -648,9 +623,7 @@ export class LibraryCubit extends Cubit<LibraryState> {
 
     if (activePath) {
       const physicalPath = activePath.split('?vc=')[0];
-      const isActiveImageDeleted = pathsToDelete.some(
-        (p) => p === activePath || p === physicalPath,
-      );
+      const isActiveImageDeleted = pathsToDelete.some((p) => p === activePath || p === physicalPath);
 
       if (isActiveImageDeleted) {
         const currentIndex = this.sortedImageList.findIndex((img) => img.path === activePath);
@@ -666,7 +639,7 @@ export class LibraryCubit extends Cubit<LibraryState> {
               .slice(0, currentIndex)
               .reverse()
               .find((img) => !pathsToDelete.includes(img.path));
-            
+
             if (prevCandidate) {
               nextImagePath = prevCandidate.path;
             }
@@ -685,9 +658,7 @@ export class LibraryCubit extends Cubit<LibraryState> {
 
       if (selectedImage) {
         const physicalPath = selectedImage.path.split('?vc=')[0];
-        const isFileBeingEditedDeleted = pathsToDelete.some(
-          (p) => p === selectedImage.path || p === physicalPath,
-        );
+        const isFileBeingEditedDeleted = pathsToDelete.some((p) => p === selectedImage.path || p === physicalPath);
 
         if (isFileBeingEditedDeleted) {
           if (nextImagePath) {
@@ -715,9 +686,7 @@ export class LibraryCubit extends Cubit<LibraryState> {
   updateImage = (path: string, updates: Partial<ImageFile>) => {
     this.update((state) => ({
       ...state,
-      imageList: state.imageList.map((img) =>
-        img.path === path ? { ...img, ...updates } : img
-      ),
+      imageList: state.imageList.map((img) => (img.path === path ? { ...img, ...updates } : img)),
     }));
   };
 
@@ -742,5 +711,30 @@ export class LibraryCubit extends Cubit<LibraryState> {
       ...defaultState,
       supportedTypes: this.state.supportedTypes, // Keep supported types
     });
+  };
+
+  getCommonTags = (paths: string[]): { tag: string; isUser: boolean }[] => {
+    const imageList = this.state.imageList;
+    if (paths.length === 0) return [];
+    const imageFiles = imageList.filter((img) => paths.includes(img.path));
+    if (imageFiles.length === 0) return [];
+
+    const allTagsSets = imageFiles.map((img) => {
+      const tagsWithPrefix = (img.tags || []).filter((t) => !t.startsWith('color:'));
+      return new Set(tagsWithPrefix);
+    });
+
+    if (allTagsSets.length === 0) return [];
+
+    const commonTagsWithPrefix = allTagsSets.reduce((intersection, currentSet) => {
+      return new Set([...intersection].filter((tag) => currentSet.has(tag)));
+    });
+
+    return Array.from(commonTagsWithPrefix)
+      .map((tag) => ({
+        tag: tag.startsWith('user:') ? tag.substring(5) : tag,
+        isUser: tag.startsWith('user:'),
+      }))
+      .sort((a, b) => a.tag.localeCompare(b.tag));
   };
 }

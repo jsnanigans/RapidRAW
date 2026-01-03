@@ -1,7 +1,8 @@
-import { Cubit } from '@blac/core';
+import { Cubit, ensure } from '@blac/core';
 import { invoke } from '@tauri-apps/api/core';
 import { Adjustments, COPYABLE_ADJUSTMENT_KEYS, INITIAL_ADJUSTMENTS, PasteMode } from '../utils/adjustments';
 import { Invokes, AppSettings } from '../components/ui/AppProperties';
+import { SettingsCubit } from './SettingsCubit';
 
 export interface ClipboardState {
   copiedFilePaths: string[];
@@ -63,11 +64,12 @@ export class ClipboardCubit extends Cubit<ClipboardState> {
 
   pasteAdjustments = async (
     targetPaths: string[],
-    appSettings: AppSettings,
     currentAdjustments?: Adjustments,
-    setAdjustments?: (adj: Adjustments) => void
+    setAdjustments?: (adj: Adjustments) => void,
   ): Promise<Partial<Adjustments> | null> => {
     const { copiedAdjustments } = this.state;
+    const settingsCubit = ensure(SettingsCubit);
+    const appSettings = settingsCubit.state.appSettings;
     if (!copiedAdjustments || !appSettings) {
       return null;
     }

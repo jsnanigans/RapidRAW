@@ -28,8 +28,6 @@ import CommunityPage from './components/panel/CommunityPage';
 import MainLibrary from './components/panel/MainLibrary';
 import LeftPanelContainer from './components/layout/LeftPanelContainer';
 import Editor from './components/panel/Editor';
-import { useThumbnails } from './hooks/useThumbnails';
-import { ImageDimensions } from './hooks/useImageRenderSize';
 import RightPanelContainer from './components/layout/RightPanelContainer';
 import LibraryExportPanel from './components/panel/right/LibraryExportPanel';
 import BottomBar from './components/panel/BottomBar';
@@ -48,13 +46,7 @@ import CullingModal from './components/modals/CullingModal';
 import Resizer from './components/ui/Resizer';
 import {
   Adjustments,
-  AiPatch,
-  Color,
-  COLOR_LABELS,
-  Coord,
-  COPYABLE_ADJUSTMENT_KEYS,
   INITIAL_ADJUSTMENTS,
-  MaskContainer,
   normalizeLoadedAdjustments,
   PasteMode,
   CopyPasteSettings,
@@ -63,40 +55,21 @@ import { generatePaletteFromImage } from './utils/palette';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useContextMenus } from './hooks/useContextMenus';
 import { THEMES, DEFAULT_THEME_ID, ThemeProps } from './utils/themes';
-import { SubMask } from './components/panel/right/Masks';
-import {
-  ExportState,
-  IMPORT_TIMEOUT,
-  ImportState,
-  Status,
-} from './components/panel/right/ExportImportProperties';
+import { ExportState, IMPORT_TIMEOUT, ImportState, Status } from './components/panel/right/ExportImportProperties';
 import {
   AppSettings,
   Invokes,
   ImageFile,
   LibraryViewMode,
   Panel,
-  Progress,
   RawStatus,
   SupportedTypes,
   Theme,
   TransformState,
   Orientation,
-  ThumbnailSize,
-  ThumbnailAspectRatio,
 } from './components/ui/AppProperties';
 
-
 const CLERK_PUBLISHABLE_KEY = 'pk_test_YnJpZWYtc2Vhc25haWwtMTIuY2xlcmsuYWNjb3VudHMuZGV2JA'; // local dev key
-
-
-
-interface Metadata {
-  adjustments: Adjustments;
-  rating: number;
-  tags: Array<string> | null;
-  version: number;
-}
 
 interface MultiSelectOptions {
   onSimpleClick(p: any): void;
@@ -104,51 +77,7 @@ interface MultiSelectOptions {
   shiftAnchor: string | null;
 }
 
-
-
-
-
-
-
-
-
-interface LutData {
-  size: number;
-}
-
-interface SearchCriteria {
-  tags: string[];
-  text: string;
-  mode: 'AND' | 'OR';
-}
-
 const DEBUG = false;
-const REVOCATION_DELAY = 5000;
-
-const useDelayedRevokeBlobUrl = (url: string | null | undefined) => {
-  const previousUrlRef = useRef<string | null | undefined>(null);
-
-  useEffect(() => {
-    if (previousUrlRef.current && previousUrlRef.current !== url) {
-      const urlToRevoke = previousUrlRef.current;
-      if (urlToRevoke && urlToRevoke.startsWith('blob:')) {
-        setTimeout(() => {
-          URL.revokeObjectURL(urlToRevoke);
-        }, REVOCATION_DELAY);
-      }
-    }
-    previousUrlRef.current = url;
-  }, [url]);
-
-  useEffect(() => {
-    return () => {
-      const finalUrl = previousUrlRef.current;
-      if (finalUrl && finalUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(finalUrl);
-      }
-    };
-  }, []);
-};
 
 const getParentDir = (filePath: string): string => {
   const separator = filePath.includes('/') ? '/' : '\\';
@@ -169,33 +98,14 @@ function App() {
   const [uiState, uiCubit] = useBloc(UICubit);
   const [exportImportState, exportImportCubit] = useBloc(ExportImportCubit);
   const [clipboardState, clipboardCubit] = useBloc(ClipboardCubit);
-  const [indexingState, indexingCubit] = useBloc(IndexingCubit);
-  const [comfyUIState, comfyUICubit] = useBloc(ComfyUICubit);
+  const [, indexingCubit] = useBloc(IndexingCubit);
+  const [, comfyUICubit] = useBloc(ComfyUICubit);
 
   // Destructure commonly used state from LibraryCubit (early for useThumbnails)
-  const {
-    imageList,
-    imageRatings,
-    thumbnails,
-    multiSelectedPaths,
-    sortCriteria,
-    filterCriteria,
-    searchCriteria,
-  } = libraryState;
+  const { imageList, thumbnails, multiSelectedPaths, sortCriteria, filterCriteria } = libraryState;
 
   // Navigation state from NavigationCubit - single source of truth
-  const {
-    rootPath,
-    currentFolderPath,
-    expandedFolders,
-    folderTree,
-    pinnedFolderTrees,
-    pinnedFolders,
-    activeTreeSection,
-    isTreeLoading,
-    activeView,
-    libraryViewMode,
-  } = navigationState;
+  const { rootPath, currentFolderPath, expandedFolders, pinnedFolders, activeView, libraryViewMode } = navigationState;
 
   // Settings state from SettingsCubit - single source of truth
   const { theme, appSettings } = settingsState;
@@ -207,36 +117,19 @@ function App() {
   const {
     selectedImage,
     adjustments,
-    zoom,
-    displaySize,
-    previewSize,
-    baseRenderSize,
-    originalSize,
     showOriginal,
     isFullScreen,
-    isFullScreenLoading,
-    isAdjusting,
-    isLoadingFullRes,
     isFullResolution,
     isViewLoading,
-    copiedSectionAdjustments,
     activeRightPanel,
-    renderedRightPanel,
-    isStraightenActive,
-    isWbPickerActive,
     finalPreviewUrl,
-    uncroppedAdjustedPreviewUrl,
-    fullScreenUrl,
     fullResolutionUrl,
     transformedOriginalUrl,
-    histogram,
     waveform,
     isWaveformVisible,
-    collapsibleSectionsState,
     error,
     libraryActivePath,
     libraryActiveAdjustments,
-    initialFitScale,
   } = editorState;
 
   // Computed getters from EditorCubit
@@ -247,53 +140,34 @@ function App() {
   const setError = editorCubit.setError;
   const setSelectedImage = editorCubit.setSelectedImage;
   const setShowOriginal = editorCubit.setShowOriginal;
-  const setIsFullScreen = editorCubit.setIsFullScreen;
   const setIsFullScreenLoading = editorCubit.setIsFullScreenLoading;
   const setIsAdjusting = editorCubit.setIsAdjusting;
   const setIsLoadingFullRes = editorCubit.setIsLoadingFullRes;
   const setIsFullResolution = editorCubit.setIsFullResolution;
   const setIsViewLoading = editorCubit.setIsViewLoading;
-  const setActiveRightPanel = editorCubit.setActiveRightPanel;
-  const setRenderedRightPanel = editorCubit.setRenderedRightPanel;
-  const setFinalPreviewUrl = editorCubit.setFinalPreviewUrl;
-  const setUncroppedAdjustedPreviewUrl = editorCubit.setUncroppedAdjustedPreviewUrl;
   const setFullScreenUrl = editorCubit.setFullScreenUrl;
   const setFullResolutionUrl = editorCubit.setFullResolutionUrl;
   const setTransformedOriginalUrl = editorCubit.setTransformedOriginalUrl;
-  const setHistogram = editorCubit.setHistogram;
   const setWaveform = editorCubit.setWaveform;
-  const setIsWaveformVisible = editorCubit.setIsWaveformVisible;
   const setLibraryActivePath = editorCubit.setLibraryActivePath;
   const setLibraryActiveAdjustments = editorCubit.setLibraryActiveAdjustments;
-  const setInitialFitScale = editorCubit.setInitialFitScale;
   const setZoom = editorCubit.setZoom;
   const setOriginalSize = editorCubit.setOriginalSize;
   const setPreviewSize = editorCubit.setPreviewSize;
   const resetAdjustmentsHistory = editorCubit.resetHistory;
-  const setIsWbPickerActive = editorCubit.setIsWbPickerActive;
 
   // For callback-style setSelectedImage updates
   const updateSelectedImage = editorCubit.updateSelectedImage;
 
   // Delegate to EditorCubit
 
-
   const [initialFileToOpen, setInitialFileToOpen] = useState<string | null>(null);
   // uiVisibility is derived from appSettings (SettingsCubit is single source of truth)
-  const uiVisibility = appSettings?.uiVisibility ?? { folderTree: true, filmstrip: true };
   const [isAnimatingTheme, setIsAnimatingTheme] = useState(false);
   const isInitialThemeMount = useRef(true);
   const [adaptivePalette, setAdaptivePalette] = useState<any>(null);
   // Masks state from MasksCubit - single source of truth
-  const {
-    activeMaskContainerId,
-    activeMaskId,
-    activeAiPatchContainerId,
-    activeAiSubMaskId,
-    brushSettings,
-    isGeneratingAiMask,
-    isMaskControlHovered,
-  } = masksState;
+  const { activeMaskContainerId, activeAiPatchContainerId } = masksState;
   const fullResRequestRef = useRef<any>(null);
   const fullResCacheKeyRef = useRef<string | null>(null);
 
@@ -301,47 +175,18 @@ function App() {
   // useDelayedRevokeBlobUrl hooks removed - cubit handles cleanup
 
   // UI state from UICubit - single source of truth
-  const {
-    rightPanelWidth,
-    bottomPanelHeight,
-    isResizing,
-    isLibraryExportPanelVisible,
-    libraryScrollTop,
-  } = uiState;
+  const { rightPanelWidth, bottomPanelHeight, isResizing, isLibraryExportPanelVisible } = uiState;
 
   // Export/Import state from ExportImportCubit - single source of truth
   const { export: exportState, import: importState } = exportImportState;
 
   // Clipboard state from ClipboardCubit - single source of truth
-  const {
-    copiedFilePaths,
-    copiedAdjustments,
-    isCopied,
-    isPasted,
-  } = clipboardState;
-
-  // Indexing state from IndexingCubit - single source of truth
-  const { isIndexing, progress: indexingProgress } = indexingState;
-
-  // ComfyUI state from ComfyUICubit - single source of truth
-  const {
-    isConnected: isComfyUiConnected,
-    isGenerating: isGeneratingAi,
-    modelDownloadStatus: aiModelDownloadStatus,
-  } = comfyUIState;
-
-  // thumbnailSize and thumbnailAspectRatio derived from appSettings (SettingsCubit is single source of truth)
-  const thumbnailSize = appSettings?.thumbnailSize ?? ThumbnailSize.Medium;
-  const thumbnailAspectRatio = appSettings?.thumbnailAspectRatio ?? ThumbnailAspectRatio.Cover;
-
-  // copiedMask now comes from MasksCubit
-  const { copiedMask } = masksState;
+  const { copiedFilePaths, copiedAdjustments } = clipboardState;
 
   // NOTE: brushSettings, isGeneratingAiMask, isMaskControlHovered now come from MasksCubit
 
   // Wrapper setters for backward compatibility (delegate to cubits)
   const setIsLibraryExportPanelVisible = uiCubit.setIsLibraryExportPanelVisible;
-
 
   const setExportState = (state: Partial<ExportState> | ((prev: ExportState) => ExportState)) => {
     if (typeof state === 'function') {
@@ -363,19 +208,7 @@ function App() {
 
   const setCopiedFilePaths = clipboardCubit.setCopiedFilePaths;
 
-  const setIsGeneratingAi = comfyUICubit.setIsGenerating;
-
   const [customEscapeHandler, setCustomEscapeHandler] = useState(null);
-  const { loading: isThumbnailsLoading } = useThumbnails(imageList, (updater: any) => {
-    if (typeof updater === 'function') {
-      libraryCubit.update((state) => ({
-        ...state,
-        thumbnails: updater(state.thumbnails),
-      }));
-    } else {
-      libraryCubit.setThumbnails(updater);
-    }
-  });
   const transformWrapperRef = useRef<any>(null);
   const isProgrammaticZoom = useRef(false);
   const isInitialMount = useRef(true);
@@ -392,9 +225,7 @@ function App() {
 
   // Delegate to EditorCubit.applyStraighten
 
-
   // No-op callback for white balance picker (keeps picker active after use)
-
 
   useEffect(() => {
     if (
@@ -465,7 +296,6 @@ function App() {
   // Note: ComfyUI status polling is handled by ComfyUICubit (in constructor)
 
   // Delegate to EditorCubit
-
 
   const handleGenerativeReplace = useCallback(
     async (patchId: string, prompt: string, useFastInpaint: boolean) => {
@@ -612,8 +442,6 @@ function App() {
     };
   }, [editorCubit, exportImportCubit, indexingCubit, libraryCubit, modalsCubit]);
 
-
-
   // React to settingsState.isLoaded to sync other cubits and initialize app
   useEffect(() => {
     if (!settingsState.isLoaded) return;
@@ -646,7 +474,7 @@ function App() {
     }
 
     // Notify backend that frontend is ready
-    invoke('frontend_ready').catch(e => console.error("Failed to notify backend of readiness:", e));
+    invoke('frontend_ready').catch((e) => console.error('Failed to notify backend of readiness:', e));
 
     isInitialMount.current = false;
   }, [settingsState.isLoaded]);
@@ -682,7 +510,7 @@ function App() {
     if (appSettings?.adaptiveEditorTheme && selectedImage && finalPreviewUrl) {
       generatePaletteFromImage(finalPreviewUrl)
         .then(setAdaptivePalette)
-        .catch((err) => {
+        .catch(() => {
           const darkTheme = THEMES.find((t) => t.id === Theme.Dark);
           setAdaptivePalette(darkTheme ? darkTheme.cssVariables : null);
         });
@@ -732,21 +560,24 @@ function App() {
   // Delegate to NavigationCubit
   const refreshAllFolderTrees = navigationCubit.refreshAllFolderTrees;
 
-  const handleTogglePinFolder = useCallback(async (path: string) => {
-    if (!appSettings) return;
-    const isPinned = pinnedFolders.includes(path);
+  const handleTogglePinFolder = useCallback(
+    async (path: string) => {
+      if (!appSettings) return;
+      const isPinned = pinnedFolders.includes(path);
 
-    // If pinning the current folder, switch to pinned section
-    if (!isPinned && path === currentFolderPath) {
-      handleActiveTreeSectionChange('pinned');
-    }
+      // If pinning the current folder, switch to pinned section
+      if (!isPinned && path === currentFolderPath) {
+        handleActiveTreeSectionChange('pinned');
+      }
 
-    // Toggle pin in NavigationCubit (handles tree refresh)
-    const newPins = await navigationCubit.togglePinFolder(path);
+      // Toggle pin in NavigationCubit (handles tree refresh)
+      const newPins = await navigationCubit.togglePinFolder(path);
 
-    // Persist to settings
-    handleSettingsChange({ ...appSettings, pinnedFolders: newPins });
-  }, [appSettings, handleSettingsChange, currentFolderPath, pinnedFolders, navigationCubit]);
+      // Persist to settings
+      handleSettingsChange({ ...appSettings, pinnedFolders: newPins });
+    },
+    [appSettings, handleSettingsChange, currentFolderPath, pinnedFolders, navigationCubit],
+  );
 
   const handleActiveTreeSectionChange = (section: string | null) => {
     navigationCubit.setActiveTreeSection(section);
@@ -820,7 +651,7 @@ function App() {
               ...state,
               imageList: state.imageList.map((image) => {
                 if (exifDataMap[image.path] && !image.exif) {
-                   return { ...image, exif: exifDataMap[image.path] };
+                  return { ...image, exif: exifDataMap[image.path] };
                 }
                 return image;
               }),
@@ -955,63 +786,6 @@ function App() {
     generate();
   }, [isFullScreen, selectedImage?.path, selectedImage?.isReady, adjustments]);
 
-  const handleCopyAdjustments = useCallback(() => {
-    const sourceAdjustments = selectedImage ? adjustments : libraryActiveAdjustments;
-    clipboardCubit.copyAdjustments(sourceAdjustments);
-  }, [selectedImage, adjustments, libraryActiveAdjustments, clipboardCubit]);
-
-  const handlePasteAdjustments = useCallback(
-    (paths?: Array<string>) => {
-      if (!copiedAdjustments || !appSettings) {
-        return;
-      }
-
-      const { mode, includedAdjustments } = appSettings.copyPasteSettings;
-
-      const adjustmentsToApply: Partial<Adjustments> = {};
-
-      for (const key of includedAdjustments) {
-        if (Object.prototype.hasOwnProperty.call(copiedAdjustments, key)) {
-          const value = copiedAdjustments[key as keyof Adjustments];
-
-          if (mode === PasteMode.Merge) {
-            const defaultValue = INITIAL_ADJUSTMENTS[key as keyof Adjustments];
-            if (JSON.stringify(value) !== JSON.stringify(defaultValue)) {
-              adjustmentsToApply[key as keyof Adjustments] = value;
-            }
-          } else {
-            adjustmentsToApply[key as keyof Adjustments] = value;
-          }
-        }
-      }
-
-      if (Object.keys(adjustmentsToApply).length === 0) {
-        clipboardCubit.showPastedFeedback();
-        return;
-      }
-
-      const pathsToUpdate =
-        paths || (multiSelectedPaths.length > 0 ? multiSelectedPaths : selectedImage ? [selectedImage.path] : []);
-      if (pathsToUpdate.length === 0) {
-        return;
-      }
-
-      if (selectedImage && pathsToUpdate.includes(selectedImage.path)) {
-        const newAdjustments = { ...adjustments, ...adjustmentsToApply };
-        setAdjustments(newAdjustments);
-      }
-
-      invoke(Invokes.ApplyAdjustmentsToPaths, { paths: pathsToUpdate, adjustments: adjustmentsToApply }).catch(
-        (err) => {
-          console.error('Failed to paste adjustments to multiple images:', err);
-          setError(`Failed to paste adjustments: ${err}`);
-        },
-      );
-      clipboardCubit.showPastedFeedback();
-    },
-    [copiedAdjustments, appSettings, multiSelectedPaths, selectedImage, adjustments, setAdjustments, clipboardCubit],
-  );
-
   const handleRate = useCallback(
     (newRating: number, paths?: Array<string>) => {
       libraryCubit.rateImages(newRating, editorCubit, paths);
@@ -1025,30 +799,6 @@ function App() {
     },
     [libraryCubit, editorCubit],
   );
-
-  const getCommonTags = useCallback((paths: string[]): { tag: string; isUser: boolean }[] => {
-    if (paths.length === 0) return [];
-    const imageFiles = imageList.filter((img) => paths.includes(img.path));
-    if (imageFiles.length === 0) return [];
-
-    const allTagsSets = imageFiles.map((img) => {
-      const tagsWithPrefix = (img.tags || []).filter((t) => !t.startsWith('color:'));
-      return new Set(tagsWithPrefix);
-    });
-
-    if (allTagsSets.length === 0) return [];
-
-    const commonTagsWithPrefix = allTagsSets.reduce((intersection, currentSet) => {
-      return new Set([...intersection].filter((tag) => currentSet.has(tag)));
-    });
-
-    return Array.from(commonTagsWithPrefix)
-      .map((tag) => ({
-        tag: tag.startsWith('user:') ? tag.substring(5) : tag,
-        isUser: tag.startsWith('user:'),
-      }))
-      .sort((a, b) => a.tag.localeCompare(b.tag));
-  }, [imageList]);
 
   const handlePasteFiles = useCallback(
     async (mode = 'copy') => {
@@ -1136,7 +886,14 @@ function App() {
         cancelFullResRequest,
       });
     },
-    [editorCubit, appSettings?.enableZoomHifi, fullResolutionUrl, visualAdjustmentsKey, requestFullResolution, cancelFullResRequest],
+    [
+      editorCubit,
+      appSettings?.enableZoomHifi,
+      fullResolutionUrl,
+      visualAdjustmentsKey,
+      requestFullResolution,
+      cancelFullResRequest,
+    ],
   );
 
   const handleZoomChange = useCallback(
@@ -1165,17 +922,6 @@ function App() {
     },
     [editorCubit, handleFullResolutionLogic],
   );
-
-  const isAnyModalOpen = 
-    modalsState.createFolder.isOpen ||
-    modalsState.renameFolder.isOpen ||
-    modalsState.renameFile.isOpen ||
-    modalsState.import.isOpen ||
-    modalsState.copyPasteSettings.isOpen ||
-    modalsState.confirm.isOpen ||
-    modalsState.panorama.isOpen ||
-    modalsState.culling.isOpen ||
-    modalsState.collage.isOpen;
 
   useKeyboardShortcuts({
     copiedFilePaths,
@@ -1271,34 +1017,37 @@ function App() {
     }
   };
 
-  const handleApplyDenoise = useCallback(async (intensity: number) => {
-    const { targetPath } = modalsState.denoise;
-    if (!targetPath) return;
-    
-    modalsCubit.updateDenoiseState({ 
-      isProcessing: true, 
-      error: null, 
-      progressMessage: "Starting engine..." 
-    });
-    
-    try {
-        await invoke(Invokes.ApplyDenoising, { 
-            path: targetPath,
-            intensity: intensity 
+  const handleApplyDenoise = useCallback(
+    async (intensity: number) => {
+      const { targetPath } = modalsState.denoise;
+      if (!targetPath) return;
+
+      modalsCubit.updateDenoiseState({
+        isProcessing: true,
+        error: null,
+        progressMessage: 'Starting engine...',
+      });
+
+      try {
+        await invoke(Invokes.ApplyDenoising, {
+          path: targetPath,
+          intensity: intensity,
         });
-    } catch (err) {
-        modalsCubit.updateDenoiseState({ 
-            isProcessing: false, 
-            error: String(err) 
+      } catch (err) {
+        modalsCubit.updateDenoiseState({
+          isProcessing: false,
+          error: String(err),
         });
-    }
-  }, [modalsState.denoise.targetPath, modalsCubit]);
+      }
+    },
+    [modalsState.denoise.targetPath, modalsCubit],
+  );
 
   const handleSaveDenoisedImage = async (): Promise<string> => {
     const { targetPath } = modalsState.denoise;
-    if (!targetPath) throw new Error("No target path");
+    if (!targetPath) throw new Error('No target path');
     const savedPath = await invoke<string>(Invokes.SaveDenoisedImage, {
-        originalPathStr: targetPath
+      originalPathStr: targetPath,
     });
     await refreshImageList();
     return savedPath;
@@ -1375,7 +1124,16 @@ function App() {
       onSettingsChange: handleSettingsChange,
       goHomeCallback: handleGoHome,
     });
-  }, [navigationCubit, appSettings, libraryCubit, editorCubit, settingsCubit, uiCubit, handleSettingsChange, handleGoHome]);
+  }, [
+    navigationCubit,
+    appSettings,
+    libraryCubit,
+    editorCubit,
+    settingsCubit,
+    uiCubit,
+    handleSettingsChange,
+    handleGoHome,
+  ]);
 
   useEffect(() => {
     if (!initialFileToOpen || !appSettings) {
@@ -1387,7 +1145,7 @@ function App() {
       handleSelectSubfolder(parentDir, true);
       return;
     }
-    const isImageInList = imageList.some(image => image.path === initialFileToOpen);
+    const isImageInList = imageList.some((image) => image.path === initialFileToOpen);
     if (isImageInList) {
       handleImageSelect(initialFileToOpen);
       setInitialFileToOpen(null);
@@ -1395,7 +1153,16 @@ function App() {
       console.warn(`'open-with-file' target ${initialFileToOpen} not found in its directory after loading. Aborting.`);
       setInitialFileToOpen(null);
     }
-  }, [initialFileToOpen, appSettings, currentFolderPath, imageList, isViewLoading, handleSelectSubfolder, handleImageSelect, navigationCubit]);
+  }, [
+    initialFileToOpen,
+    appSettings,
+    currentFolderPath,
+    imageList,
+    isViewLoading,
+    handleSelectSubfolder,
+    handleImageSelect,
+    navigationCubit,
+  ]);
 
   const handleMultiSelectClick = (path: string, event: any, options: MultiSelectOptions) => {
     const { ctrlKey, metaKey, shiftKey } = event;
@@ -1478,86 +1245,86 @@ function App() {
 
   useEffect(() => {
     if (selectedImage && !selectedImage.isReady && selectedImage.path) {
-    let isEffectActive = true;
-    const loadFullImageData = async () => {
+      let isEffectActive = true;
+      const loadFullImageData = async () => {
         try {
-        const loadImageResult: any = await invoke(Invokes.LoadImage, { path: selectedImage.path });
-        if (!isEffectActive) {
+          const loadImageResult: any = await invoke(Invokes.LoadImage, { path: selectedImage.path });
+          if (!isEffectActive) {
             return;
-        }
-        if (!isEffectActive) {
+          }
+          if (!isEffectActive) {
             return;
-        }
+          }
 
-        const { width, height } = loadImageResult;
-        setOriginalSize({ width, height });
+          const { width, height } = loadImageResult;
+          setOriginalSize({ width, height });
 
-        if (appSettings?.editorPreviewResolution) {
+          if (appSettings?.editorPreviewResolution) {
             const maxSize = appSettings.editorPreviewResolution;
             const aspectRatio = width / height;
 
             if (width > height) {
-            const pWidth = Math.min(width, maxSize);
-            const pHeight = Math.round(pWidth / aspectRatio);
-            setPreviewSize({ width: pWidth, height: pHeight });
+              const pWidth = Math.min(width, maxSize);
+              const pHeight = Math.round(pWidth / aspectRatio);
+              setPreviewSize({ width: pWidth, height: pHeight });
             } else {
-            const pHeight = Math.min(height, maxSize);
-            const pWidth = Math.round(pHeight * aspectRatio);
-            setPreviewSize({ width: pWidth, height: pHeight });
+              const pHeight = Math.min(height, maxSize);
+              const pWidth = Math.round(pHeight * aspectRatio);
+              setPreviewSize({ width: pWidth, height: pHeight });
             }
-        } else {
+          } else {
             setPreviewSize({ width: 0, height: 0 });
-        }
+          }
 
-        setIsFullResolution(false);
-        setFullResolutionUrl(null);
-        fullResCacheKeyRef.current = null;
+          setIsFullResolution(false);
+          setFullResolutionUrl(null);
+          fullResCacheKeyRef.current = null;
 
-        const blob = new Blob([loadImageResult.original_image_bytes], { type: 'image/jpeg' });
-        const originalUrl = URL.createObjectURL(blob);
+          const blob = new Blob([loadImageResult.original_image_bytes], { type: 'image/jpeg' });
+          const originalUrl = URL.createObjectURL(blob);
 
-        // Update selected image with loaded data
-        if (editorState.selectedImage && editorState.selectedImage.path === selectedImage.path) {
-          updateSelectedImage({
-            exif: loadImageResult.exif,
-            height: loadImageResult.height,
-            isRaw: loadImageResult.is_raw,
-            isReady: true,
-            metadata: loadImageResult.metadata,
-            originalUrl: originalUrl,
-            width: loadImageResult.width,
-          });
-        }
+          // Update selected image with loaded data
+          if (editorState.selectedImage && editorState.selectedImage.path === selectedImage.path) {
+            updateSelectedImage({
+              exif: loadImageResult.exif,
+              height: loadImageResult.height,
+              isRaw: loadImageResult.is_raw,
+              isReady: true,
+              metadata: loadImageResult.metadata,
+              originalUrl: originalUrl,
+              width: loadImageResult.width,
+            });
+          }
 
-        let initialAdjusts;
-        if (loadImageResult.metadata.adjustments && !loadImageResult.metadata.adjustments.is_null) {
+          let initialAdjusts;
+          if (loadImageResult.metadata.adjustments && !loadImageResult.metadata.adjustments.is_null) {
             initialAdjusts = normalizeLoadedAdjustments(loadImageResult.metadata.adjustments);
-        } else {
+          } else {
             initialAdjusts = {
-            ...INITIAL_ADJUSTMENTS,
-            aspectRatio: loadImageResult.width / loadImageResult.height,
+              ...INITIAL_ADJUSTMENTS,
+              aspectRatio: loadImageResult.width / loadImageResult.height,
             };
-        }
-        if (loadImageResult.metadata.adjustments && !loadImageResult.metadata.adjustments.is_null) {
+          }
+          if (loadImageResult.metadata.adjustments && !loadImageResult.metadata.adjustments.is_null) {
             initialAdjusts = normalizeLoadedAdjustments(loadImageResult.metadata.adjustments);
-        }
-        resetAdjustmentsHistory(initialAdjusts);
+          }
+          resetAdjustmentsHistory(initialAdjusts);
         } catch (err) {
-        if (isEffectActive) {
+          if (isEffectActive) {
             console.error('Failed to load image:', err);
             setError(`Failed to load image: ${err}`);
             setSelectedImage(null);
-        }
+          }
         } finally {
-        if (isEffectActive) {
+          if (isEffectActive) {
             setIsViewLoading(false);
+          }
         }
-        }
-    };
-    loadFullImageData();
-    return () => {
+      };
+      loadFullImageData();
+      return () => {
         isEffectActive = false;
-    };
+      };
     }
   }, [selectedImage?.path, selectedImage?.isReady, resetAdjustmentsHistory, appSettings?.editorPreviewResolution]);
 
@@ -1608,7 +1375,15 @@ function App() {
         }
       }
     },
-    [modalsState.renameFile.paths, refreshImageList, selectedImage, libraryActivePath, handleImageSelect, handleBackToLibrary, libraryCubit],
+    [
+      modalsState.renameFile.paths,
+      refreshImageList,
+      selectedImage,
+      libraryActivePath,
+      handleImageSelect,
+      handleBackToLibrary,
+      libraryCubit,
+    ],
   );
 
   const handleStartImport = async (settings: AppSettings) => {
@@ -1740,7 +1515,9 @@ function App() {
 
         const currentPins = appSettings?.pinnedFolders || [];
         if (currentPins.includes(oldPath)) {
-          const newPins = currentPins.map((p: string) => (p === oldPath ? newPath : p)).sort((a: string, b: string) => a.localeCompare(b));
+          const newPins = currentPins
+            .map((p: string) => (p === oldPath ? newPath : p))
+            .sort((a: string, b: string) => a.localeCompare(b));
           newAppSettings.pinnedFolders = newPins;
           navigationCubit.setPinnedFolders(newPins);
           settingsChanged = true;
@@ -1751,7 +1528,6 @@ function App() {
         }
 
         await refreshAllFolderTrees();
-
       } catch (err) {
         setError(`Failed to rename folder: ${err}`);
       }
@@ -1761,40 +1537,6 @@ function App() {
   const renderMainView = () => {
     if (selectedImage) {
       return (
-        <div className="flex flex-row flex-grow h-full min-h-0">
-          <div className="flex-1 flex flex-col min-w-0">
-            <Editor
-              onContextMenu={handleEditorContextMenu}
-              onZoomed={handleUserTransform}
-              transformWrapperRef={transformWrapperRef}
-              onZoomChange={handleZoomChange}
-            />
-            <Resizer
-              direction={Orientation.Horizontal}
-              onMouseDown={createResizeHandler('bottom', bottomPanelHeight)}
-            />
-            <BottomBar
-              onClearSelection={handleClearSelection}
-              onContextMenu={handleThumbnailContextMenu}
-              onCopy={handleCopyAdjustments}
-              onImageSelect={handleImageClick}
-              onPaste={() => handlePasteAdjustments()}
-              onRate={handleRate}
-              onZoomChange={handleZoomChange}
-            />
-          </div>
-
-          <Resizer
-            onMouseDown={createResizeHandler('right', rightPanelWidth)}
-            direction={Orientation.Vertical}
-          />
-          <RightPanelContainer
-            onDeletePatch={handleDeleteAiPatch}
-            onGenerativeReplace={handleGenerativeReplace}
-            onTogglePatchVisibility={handleToggleAiPatchVisibility}
-            setCustomEscapeHandler={setCustomEscapeHandler}
-          />
-        </div>
       );
     }
     return (
@@ -1862,10 +1604,7 @@ function App() {
           <LeftPanelContainer onContextMenu={handleFolderTreeContextMenu} />
           <div className="flex-1 flex flex-col min-w-0">{renderContent()}</div>
           {!selectedImage && isLibraryExportPanelVisible && (
-            <Resizer
-              direction={Orientation.Vertical}
-              onMouseDown={createResizeHandler('right', rightPanelWidth)}
-            />
+            <Resizer direction={Orientation.Vertical} onMouseDown={createResizeHandler('right', rightPanelWidth)} />
           )}
           <div
             className={clsx('flex-shrink-0 overflow-hidden', !isResizing && 'transition-all duration-300 ease-in-out')}
@@ -1880,7 +1619,9 @@ function App() {
       </div>
       <CopyPasteSettingsModal
         settings={appSettings?.copyPasteSettings as CopyPasteSettings}
-        onSave={(newSettings) => handleSettingsChange({ ...appSettings, copyPasteSettings: newSettings } as AppSettings)}
+        onSave={(newSettings) =>
+          handleSettingsChange({ ...appSettings, copyPasteSettings: newSettings } as AppSettings)
+        }
       />
       <PanoramaModal
         onOpenFile={(path: string) => {
@@ -1888,11 +1629,7 @@ function App() {
         }}
         onSave={handleSavePanorama}
       />
-      <DenoiseModal 
-        onDenoise={handleApplyDenoise}
-        onSave={handleSaveDenoisedImage}
-        onOpenFile={handleImageSelect}
-      />
+      <DenoiseModal onDenoise={handleApplyDenoise} onSave={handleSaveDenoisedImage} onOpenFile={handleImageSelect} />
       <CreateFolderModal onSave={handleCreateFolder} />
       <RenameFolderModal onSave={handleRenameFolder} />
       <RenameFileModal onSave={handleSaveRename} />
@@ -1911,10 +1648,7 @@ function App() {
           modalsCubit.closeCulling();
         }}
       />
-      <CollageModal
-        onSave={handleSaveCollage}
-        thumbnails={thumbnails}
-      />
+      <CollageModal onSave={handleSaveCollage} thumbnails={thumbnails} />
     </div>
   );
 }
@@ -1928,3 +1662,4 @@ const AppWrapper = () => (
 );
 
 export default AppWrapper;
+
